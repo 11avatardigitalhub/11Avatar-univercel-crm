@@ -1,0 +1,487 @@
+/**
+ * ==========================================
+ * FILE: responsive.css
+ * MODULE: Responsive Styles
+ * VERSION: 2.0.0
+ * ==========================================
+ * 
+ * DESCRIPTION:
+ * Responsive styles for 11 Avatar CRM.
+ * Includes breakpoints, responsive utilities,
+ * and mobile-first adjustments.
+ * 
+ * THEME RULES:
+ * - Brand Colors: White, Gold, Black
+ * ==========================================
+ */
+
+/* ==========================================
+   BREAKPOINTS
+   ========================================== */
+/* 2xl: 1536px */
+/* xl: 1280px */
+/* lg: 1024px */
+/* md: 768px */
+/* sm: 640px */
+/* xs: 480px */
+
+/* ==========================================
+   RESPONSIVE UTILITIES
+   ========================================== */
+
+/* Hide/Show */
+.hide-xs {
+    display: inline-flex;
+}
+.show-xs {
+    display: none;
+}
+
+@media (max-width: 480px) {
+    .hide-xs {
+        display: none !important;
+    }
+    .show-xs {
+        display: inline-flex !important;
+    }
+}
+
+.hide-sm {
+    display: inline-flex;
+}
+.show-sm {
+    display: none;
+}
+
+@media (max-width: 640px) {
+    .hide-sm {
+        display: none !important;
+    }
+    .show-sm {
+        display: inline-flex !important;
+    }
+}
+
+.hide-md {
+    display: inline-flex;
+}
+.show-md {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .hide-md {
+        display: none !important;
+    }
+    .show-md {
+        display: inline-flex !important;
+    }
+}
+
+.hide-lg {
+    display: inline-flex;
+}
+.show-lg {
+    display: none;
+}
+
+@media (max-width: 1024px) {
+    .hide-lg {
+        display: none !important;
+    }
+    .show-lg {
+        display: inline-flex !important;
+    }
+}
+
+.hide-xl {
+    display: inline-flex;
+}
+.show-xl {
+    display: none;
+}
+
+@media (max-width: 1280px) {
+    .hide-xl {
+        display: none !important;
+    }
+    .show-xl {
+        display: inline-flex !important;
+    }
+}
+
+/* ==========================================
+   RESPONSIVE CONTAINER
+   ========================================== */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 16px;
+    }
+}
+
+/* ==========================================
+   RESPONSIVE GRID
+   ========================================== */
+@media (max-width: 1280px) {
+    .grid-cols-5 {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    .grid-cols-6 {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    .grid-cols-7 {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    .grid-cols-8 {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 1024px) {
+    .grid-cols-4 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .grid-cols-5 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .grid-cols-6 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .grid-cols-7 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .grid-cols-8 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .grid-cols-12 {
+        grid-template-columns: repeat(6, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .grid-cols-2 {
+        grid-template-columns: 1fr 1fr;
+    }
+    .grid-cols-3 {
+        grid-template-columns: 1fr 1fr;
+    }
+    .grid-cols-4 {
+        grid-template-columns: 1fr 1fr;
+    }
+    .grid-cols-5 {
+        grid-template-columns: 1fr 1fr;
+    }
+    .grid-cols-6 {
+        grid-template-columns: 1fr 1fr;
+    }
+    .grid-cols-7 {
+        grid-template-columns: 1fr 1fr;
+    }
+    .grid-cols-8 {
+        grid-template-columns: 1fr 1fr;
+    }
+    .grid-cols-12 {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .grid-cols-2 {
+        grid-template-columns: 1fr;
+    }
+    .grid-cols-3 {
+        grid-template-columns: 1fr;
+    }
+    .grid-cols-4 {
+        grid-template-columns: 1fr;
+    }
+    .grid-cols-5 {
+        grid-template-columns: 1fr;
+    }
+    .grid-cols-6 {
+        grid-template-columns: 1fr;
+    }
+    .grid-cols-7 {
+        grid-template-columns: 1fr;
+    }
+    .grid-cols-8 {
+        grid-template-columns: 1fr;
+    }
+    .grid-cols-12 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ==========================================
+   RESPONSIVE FLEX
+   ========================================== */
+@media (max-width: 768px) {
+    .flex-col-md {
+        flex-direction: column;
+    }
+    .flex-wrap-md {
+        flex-wrap: wrap;
+    }
+    .items-center-md {
+        align-items: center;
+    }
+    .justify-center-md {
+        justify-content: center;
+    }
+    .gap-4-md {
+        gap: 16px;
+    }
+    .gap-6-md {
+        gap: 24px;
+    }
+}
+
+@media (max-width: 480px) {
+    .flex-col-sm {
+        flex-direction: column;
+    }
+    .flex-wrap-sm {
+        flex-wrap: wrap;
+    }
+    .items-center-sm {
+        align-items: center;
+    }
+    .justify-center-sm {
+        justify-content: center;
+    }
+}
+
+/* ==========================================
+   RESPONSIVE APP LAYOUT
+   ========================================== */
+@media (max-width: 768px) {
+    .app {
+        flex-direction: column;
+    }
+    .sidebar {
+        position: fixed;
+        left: -280px;
+        top: 0;
+        bottom: 0;
+        width: 280px;
+        z-index: var(--z-sidebar, 400);
+        box-shadow: var(--shadow-lg, 0 10px 30px rgba(0, 0, 0, 0.12));
+        transition: left 0.3s ease;
+        height: 100vh;
+        height: 100dvh;
+    }
+    .sidebar.open {
+        left: 0;
+    }
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: var(--bg-overlay, rgba(0, 0, 0, 0.4));
+        z-index: var(--z-overlay, 600);
+    }
+    .sidebar-overlay.show {
+        display: block;
+    }
+    .main {
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+}
+
+/* ==========================================
+   RESPONSIVE HEADER
+   ========================================== */
+@media (max-width: 768px) {
+    .header {
+        padding: 0 16px;
+        height: var(--header-height-mobile, 60px);
+    }
+    .header .page-title {
+        font-size: 0.95rem;
+    }
+    .header .search input {
+        width: 120px;
+    }
+    .header .search input:focus {
+        width: 140px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header .search input {
+        width: 90px;
+        padding: 6px 10px 6px 32px;
+        font-size: 0.8rem;
+    }
+    .header .search i {
+        font-size: 0.8rem;
+        left: 10px;
+    }
+}
+
+/* ==========================================
+   RESPONSIVE CONTENT
+   ========================================== */
+@media (max-width: 768px) {
+    .content {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .content {
+        padding: 12px;
+    }
+}
+
+/* ==========================================
+   RESPONSIVE MODAL
+   ========================================== */
+@media (max-width: 768px) {
+    .modal {
+        padding: 24px 20px;
+        max-width: 100%;
+        max-height: 95vh;
+        border-radius: var(--radius-lg, 14px);
+        margin: 0 8px;
+    }
+    .modal-footer {
+        flex-wrap: wrap;
+    }
+    .modal-footer .btn {
+        flex: 1;
+        justify-content: center;
+    }
+}
+
+/* ==========================================
+   RESPONSIVE TABLES
+   ========================================== */
+@media (max-width: 768px) {
+    .table-responsive {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .table-responsive table {
+        min-width: 600px;
+    }
+    .table-pagination {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+/* ==========================================
+   RESPONSIVE FORMS
+   ========================================== */
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    .form-actions {
+        flex-direction: column;
+    }
+    .form-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ==========================================
+   RESPONSIVE TYPOGRAPHY
+   ========================================== */
+@media (max-width: 768px) {
+    .heading-1 {
+        font-size: var(--font-4xl, 2.25rem);
+    }
+    .heading-2 {
+        font-size: var(--font-3xl, 1.875rem);
+    }
+    .heading-3 {
+        font-size: var(--font-2xl, 1.5rem);
+    }
+    .text-5xl {
+        font-size: var(--font-4xl, 2.25rem);
+    }
+    .text-6xl {
+        font-size: var(--font-5xl, 3rem);
+    }
+}
+
+@media (max-width: 480px) {
+    .heading-1 {
+        font-size: var(--font-3xl, 1.875rem);
+    }
+    .heading-2 {
+        font-size: var(--font-2xl, 1.5rem);
+    }
+    .text-4xl {
+        font-size: var(--font-3xl, 1.875rem);
+    }
+    .text-5xl {
+        font-size: var(--font-3xl, 1.875rem);
+    }
+}
+
+/* ==========================================
+   RESPONSIVE CARDS
+   ========================================== */
+@media (max-width: 768px) {
+    .card-sm {
+        padding: 12px;
+    }
+    .card-md {
+        padding: 16px;
+    }
+    .card-lg {
+        padding: 20px;
+    }
+    .card-xl {
+        padding: 24px;
+    }
+}
+
+/* ==========================================
+   RESPONSIVE DASHBOARD
+   ========================================== */
+@media (max-width: 1200px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 992px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    .bottom-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .stat-card {
+        padding: 16px;
+    }
+    .stat-card .value {
+        font-size: 1.4rem;
+    }
+    .panel {
+        padding: 16px;
+    }
+    .chart-container {
+        height: 160px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
