@@ -1,417 +1,810 @@
 /**
  * ==========================================
- * FILE: tenantIsolation.js
- * MODULE: Core/Multitenancy
- * CODE: MT-6
+ * FILE: roleEngine.js
+ * MODULE: Core/RBAC
+ * CODE: RBAC-1
  * PRIORITY: P0
  * PHASE: 0
  * STATUS: COMPLETED
+ * VERSION: 1.0.0
  * ==========================================
  * 
  * DESCRIPTION:
- * Ensures complete data isolation between tenants.
- * Prevents cross-tenant data access and leakage.
+ * Central role management engine for the CRM.
+ * Defines roles, permissions, and access control rules.
+ * Supports hierarchical roles and custom permissions.
  * 
  * DEPENDENCIES:
  * - None (standalone)
  * 
  * FUNCTIONS:
- * - getCurrentTenant(): Get current tenant ID
- * - setCurrentTenant(tenantId): Set current tenant context
- * - validateTenantAccess(user, tenantId): Check access
- * - enforceTenantQuery(query): Apply tenant filter
- * - getTenantLimits(tenantId): Get tenant quotas
- * - isTenantActive(tenantId): Check tenant status
- * - getTenantConfig(tenantId): Get tenant settings
- * - createTenantContext(): Create context for request
- * - clearTenantContext(): Clear current context
- * - validateCrossTenantOperation(): Prevent cross-tenant ops
+ * - getRole(roleId): Get role definition
+ * - getAllRoles(): Get all roles
+ * - createRole(roleData): Create new role
+ * - updateRole(roleId, roleData): Update role
+ * - deleteRole(roleId): Delete role
+ * - assignRole(userId, roleId): Assign role to user
+ * - removeRole(userId, roleId): Remove role from user
+ * - getUserRoles(userId): Get user's roles
+ * - hasPermission(userId, permission): Check permission
+ * - hasRole(userId, roleId): Check role
+ * - getPermissionsForRole(roleId): Get role permissions
+ * - addPermissionToRole(roleId, permission): Add permission
+ * - removePermissionFromRole(roleId, permission): Remove permission
+ * - getUsersWithRole(roleId): Get users with role
+ * - validateRoleHierarchy(parentRole, childRole): Validate hierarchy
  * 
  * USAGE EXAMPLE:
- * import { tenantIsolation } from './core/multitenancy/tenantIsolation.js';
+ * import { roleEngine } from './core/rbac/roleEngine.js';
  * 
- * // Set tenant context for request
- * tenantIsolation.setCurrentTenant('tenant_123');
- * 
- * // Get current tenant
- * const tenantId = tenantIsolation.getCurrentTenant();
- * 
- * // Validate access
- * if (tenantIsolation.validateTenantAccess(user, tenantId)) {
- *   // Proceed with operation
+ * // Check if user has permission
+ * if (roleEngine.hasPermission('user_123', 'can_edit_leads')) {
+ *   // Allow action
  * }
+ * 
+ * // Assign role to user
+ * await roleEngine.assignRole('user_123', 'manager');
+ * 
+ * // Get user's roles
+ * const roles = roleEngine.getUserRoles('user_123');
  * ==========================================
  */
 
-class TenantIsolation {
+class RoleEngine {
     constructor() {
-        // Store current tenant context (using Map for thread-safety)
-        this.currentTenant = null;
+        // Role definitions
+        this.roles = new Map();
         
-        // Tenant configuration cache
-        this.tenantConfigs = new Map();
+        // User role assignments
+        this.userRoles = new Map();
         
-        // Tenant limits cache
-        this.tenantLimits = new Map();
+        // Role hierarchies
+        this.roleHierarchy = new Map();
         
-        // Default limits for new tenants
-        this.defaultLimits = {
-            maxUsers: 10,
-            maxLeads: 1000,
-            maxStorage: '1GB',
-            maxApiRequests: 10000,
-            maxWhatsAppMessages: 1000,
-            maxConcurrentSessions: 5
-        };
+        // Permission cache
+        this.permissionCache = new Map();
+        
+        // Cache TTL (5 minutes)
+        this.cacheTTL = 5 * 60 * 1000;
+        this.cacheTimestamps = new Map();
         
         // Debug mode
         this.debugMode = false;
-    }
-
-    /**
-     * Get current tenant ID from context
-     * @returns {string|null} Current tenant ID
-     */
-    getCurrentTenant() {
-        // In a real implementation, this would use async_hooks or CLS
-        // For now, using synchronous storage
-        return this.currentTenant;
-    }
-
-    /**
-     * Set current tenant context
-     * @param {string} tenantId - Tenant ID
-     * @throws {Error} If tenantId is invalid
-     */
-    setCurrentTenant(tenantId) {
-        if (!tenantId || typeof tenantId !== 'string') {
-            throw new Error('Tenant ID must be a non-empty string');
-        }
-
-        // Validate tenant exists
-        if (!this.isTenantActive(tenantId)) {
-            throw new Error(`Tenant ${tenantId} is not active or does not exist`);
-        }
-
-        this.currentTenant = tenantId;
         
+        // Initialize default roles
+        this.initDefaultRoles();
+    }
+
+    /**
+     * Initialize default roles
+     */
+    initDefaultRoles() {
+        // Platform Owner
+        this.roles.set('platform_owner', {
+            id: 'platform_owner',
+            name: 'Platform Owner',
+            description: 'Full platform access',
+            level: 100,
+            permissions: ['*'],
+            isSystem: true,
+            canAssignRoles: true,
+            canManageAll: true,
+            createdAt: new Date().toISOString()
+        });
+
+        // Super Admin
+        this.roles.set('super_admin', {
+            id: 'super_admin',
+            name: 'Super Admin',
+            description: 'Full system access',
+            level: 90,
+            permissions: [
+                'manage_tenants',
+                'manage_users',
+                'manage_subscriptions',
+                'view_all',
+                'edit_all',
+                'delete_all',
+                'manage_billing',
+                'manage_settings',
+                'view_audit',
+                'manage_system'
+            ],
+            isSystem: true,
+            canAssignRoles: true,
+            canManageAll: true,
+            createdAt: new Date().toISOString()
+        });
+
+        // Admin
+        this.roles.set('admin', {
+            id: 'admin',
+            name: 'Admin',
+            description: 'Tenant admin access',
+            level: 80,
+            permissions: [
+                'manage_users',
+                'manage_settings',
+                'view_all',
+                'edit_all',
+                'manage_teams',
+                'manage_branches',
+                'view_reports',
+                'export_data',
+                'manage_integrations',
+                'manage_workflows'
+            ],
+            isSystem: true,
+            canAssignRoles: true,
+            canManageAll: false,
+            createdAt: new Date().toISOString()
+        });
+
+        // Manager
+        this.roles.set('manager', {
+            id: 'manager',
+            name: 'Manager',
+            description: 'Team management access',
+            level: 70,
+            permissions: [
+                'manage_team',
+                'view_all',
+                'edit_team_leads',
+                'assign_tasks',
+                'view_reports',
+                'approve_requests',
+                'manage_team_schedule',
+                'view_team_performance',
+                'manage_team_visits'
+            ],
+            isSystem: true,
+            canAssignRoles: false,
+            canManageAll: false,
+            createdAt: new Date().toISOString()
+        });
+
+        // Executive
+        this.roles.set('executive', {
+            id: 'executive',
+            name: 'Executive',
+            description: 'Sales executive access',
+            level: 60,
+            permissions: [
+                'create_leads',
+                'edit_own_leads',
+                'view_own_leads',
+                'manage_tasks',
+                'send_whatsapp',
+                'make_calls',
+                'create_followups',
+                'view_own_reports',
+                'create_customers',
+                'edit_own_customers',
+                'view_own_customers'
+            ],
+            isSystem: true,
+            canAssignRoles: false,
+            canManageAll: false,
+            createdAt: new Date().toISOString()
+        });
+
+        // Telecaller
+        this.roles.set('telecaller', {
+            id: 'telecaller',
+            name: 'Telecaller',
+            description: 'Telecalling access',
+            level: 50,
+            permissions: [
+                'view_assigned_leads',
+                'make_calls',
+                'send_whatsapp',
+                'create_followups',
+                'update_lead_status',
+                'view_own_tasks',
+                'log_calls',
+                'view_assigned_customers'
+            ],
+            isSystem: true,
+            canAssignRoles: false,
+            canManageAll: false,
+            createdAt: new Date().toISOString()
+        });
+
+        // Support Agent
+        this.roles.set('support', {
+            id: 'support',
+            name: 'Support Agent',
+            description: 'Customer support access',
+            level: 45,
+            permissions: [
+                'view_assigned_tickets',
+                'reply_tickets',
+                'view_customers',
+                'send_whatsapp',
+                'create_notes',
+                'view_ticket_history',
+                'escalate_tickets',
+                'view_knowledge_base'
+            ],
+            isSystem: true,
+            canAssignRoles: false,
+            canManageAll: false,
+            createdAt: new Date().toISOString()
+        });
+
+        // Viewer
+        this.roles.set('viewer', {
+            id: 'viewer',
+            name: 'Viewer',
+            description: 'Read-only access',
+            level: 40,
+            permissions: [
+                'view_own_leads',
+                'view_reports',
+                'export_data',
+                'view_dashboard',
+                'view_customers',
+                'view_tasks'
+            ],
+            isSystem: true,
+            canAssignRoles: false,
+            canManageAll: false,
+            createdAt: new Date().toISOString()
+        });
+
+        // Setup role hierarchy
+        this.roleHierarchy.set('platform_owner', ['super_admin', 'admin', 'manager', 'executive', 'telecaller', 'support', 'viewer']);
+        this.roleHierarchy.set('super_admin', ['admin', 'manager', 'executive', 'telecaller', 'support', 'viewer']);
+        this.roleHierarchy.set('admin', ['manager', 'executive', 'telecaller', 'support', 'viewer']);
+        this.roleHierarchy.set('manager', ['executive', 'telecaller', 'support', 'viewer']);
+        this.roleHierarchy.set('executive', ['telecaller', 'viewer']);
+        this.roleHierarchy.set('telecaller', ['viewer']);
+        this.roleHierarchy.set('support', ['viewer']);
+        this.roleHierarchy.set('viewer', []);
+
         if (this.debugMode) {
-            console.log(`[TenantIsolation] Current tenant set to: ${tenantId}`);
+            console.log('[RoleEngine] Default roles initialized');
         }
     }
 
     /**
-     * Clear current tenant context
+     * Get role definition
+     * @param {string} roleId - Role ID
+     * @param {object} options - Additional options
+     * @returns {object|null} Role definition or null
      */
-    clearTenantContext() {
-        this.currentTenant = null;
+    getRole(roleId, options = {}) {
+        if (!this.roles.has(roleId)) {
+            if (this.debugMode) {
+                console.warn(`[RoleEngine] Role not found: ${roleId}`);
+            }
+            return null;
+        }
+
+        const role = this.roles.get(roleId);
         
+        // Return copy to prevent mutation
+        return {
+            ...role,
+            permissions: [...role.permissions]
+        };
+    }
+
+    /**
+     * Get all roles
+     * @param {object} options - Additional options
+     * @returns {Array} List of roles
+     */
+    getAllRoles(options = {}) {
+        const roles = [];
+        for (const [id, role] of this.roles) {
+            if (options.includeSystem !== false) {
+                roles.push({ ...role, permissions: [...role.permissions] });
+            } else if (!role.isSystem) {
+                roles.push({ ...role, permissions: [...role.permissions] });
+            }
+        }
+        return roles;
+    }
+
+    /**
+     * Create new role
+     * @param {object} roleData - Role data
+     * @param {object} options - Additional options
+     * @returns {object} Created role
+     * @throws {Error} If role already exists or invalid data
+     */
+    createRole(roleData, options = {}) {
+        if (!roleData.id || !roleData.name) {
+            throw new Error('Role ID and name are required');
+        }
+
+        if (this.roles.has(roleData.id)) {
+            throw new Error(`Role ${roleData.id} already exists`);
+        }
+
+        const newRole = {
+            id: roleData.id,
+            name: roleData.name,
+            description: roleData.description || '',
+            level: roleData.level || 50,
+            permissions: roleData.permissions || [],
+            isSystem: false,
+            canAssignRoles: roleData.canAssignRoles || false,
+            canManageAll: false,
+            parentRole: roleData.parentRole || null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        this.roles.set(roleData.id, newRole);
+
         if (this.debugMode) {
-            console.log('[TenantIsolation] Tenant context cleared');
+            console.log(`[RoleEngine] Created role: ${roleData.id}`);
         }
+
+        return { ...newRole };
     }
 
     /**
-     * Create a new tenant context for a request
-     * @param {string} tenantId - Tenant ID
-     * @returns {object} Context object
+     * Update role
+     * @param {string} roleId - Role ID
+     * @param {object} roleData - Updated role data
+     * @param {object} options - Additional options
+     * @returns {object} Updated role
+     * @throws {Error} If role not found or system role
      */
-    createTenantContext(tenantId) {
-        return {
-            tenantId: tenantId,
-            timestamp: new Date().toISOString(),
-            limits: this.getTenantLimits(tenantId),
-            config: this.getTenantConfig(tenantId),
-            isActive: this.isTenantActive(tenantId)
+    updateRole(roleId, roleData, options = {}) {
+        if (!this.roles.has(roleId)) {
+            throw new Error(`Role ${roleId} not found`);
+        }
+
+        const role = this.roles.get(roleId);
+
+        if (role.isSystem && !options.forceUpdate) {
+            throw new Error(`Cannot update system role: ${roleId}`);
+        }
+
+        const updatedRole = {
+            ...role,
+            ...roleData,
+            id: roleId, // Prevent ID change
+            updatedAt: new Date().toISOString()
         };
+
+        this.roles.set(roleId, updatedRole);
+
+        // Clear permission cache for this role
+        this.clearPermissionCache(roleId);
+
+        if (this.debugMode) {
+            console.log(`[RoleEngine] Updated role: ${roleId}`);
+        }
+
+        return { ...updatedRole };
     }
 
     /**
-     * Validate if user has access to a tenant
-     * @param {object} user - User object with tenantId
-     * @param {string} tenantId - Tenant ID to check
-     * @returns {boolean} Whether user has access
+     * Delete role
+     * @param {string} roleId - Role ID
+     * @param {object} options - Additional options
+     * @returns {boolean} Whether role was deleted
+     * @throws {Error} If role not found or system role
      */
-    validateTenantAccess(user, tenantId) {
-        if (!user || !user.tenantId) {
-            if (this.debugMode) {
-                console.warn('[TenantIsolation] Invalid user object for validation');
+    deleteRole(roleId, options = {}) {
+        if (!this.roles.has(roleId)) {
+            throw new Error(`Role ${roleId} not found`);
+        }
+
+        const role = this.roles.get(roleId);
+
+        if (role.isSystem && !options.forceDelete) {
+            throw new Error(`Cannot delete system role: ${roleId}`);
+        }
+
+        // Check if role is assigned to any user
+        const usersWithRole = this.getUsersWithRole(roleId);
+        if (usersWithRole.length > 0 && !options.forceDelete) {
+            throw new Error(`Role ${roleId} is assigned to ${usersWithRole.length} users`);
+        }
+
+        // Remove role from hierarchy
+        for (const [parent, children] of this.roleHierarchy) {
+            const index = children.indexOf(roleId);
+            if (index !== -1) {
+                children.splice(index, 1);
+                this.roleHierarchy.set(parent, children);
             }
-            return false;
         }
 
-        // Platform owners and super admins bypass tenant restriction
-        if (user.role === 'platform_owner' || user.role === 'super_admin') {
-            if (this.debugMode) {
-                console.log(`[TenantIsolation] Bypass access for role: ${user.role}`);
-            }
-            return true;
+        this.roles.delete(roleId);
+
+        if (this.debugMode) {
+            console.log(`[RoleEngine] Deleted role: ${roleId}`);
         }
 
-        // Regular users can only access their own tenant
-        const hasAccess = user.tenantId === tenantId;
-        
-        if (!hasAccess && this.debugMode) {
-            console.warn(`[TenantIsolation] Access denied: User tenant ${user.tenantId} != Requested tenant ${tenantId}`);
-        }
-        
-        return hasAccess;
-    }
-
-    /**
-     * Enforce tenant filter on a query
-     * @param {object} query - Query object
-     * @param {string} tenantId - Tenant ID (optional)
-     * @returns {object} Query with tenant filter applied
-     */
-    enforceTenantQuery(query, tenantId = null) {
-        const effectiveTenantId = tenantId || this.getCurrentTenant();
-        
-        if (!effectiveTenantId) {
-            throw new Error('No tenant context available for query');
-        }
-
-        // Add tenant filter to query
-        return {
-            ...query,
-            where: {
-                ...(query.where || {}),
-                tenantId: effectiveTenantId
-            }
-        };
-    }
-
-    /**
-     * Get tenant limits
-     * @param {string} tenantId - Tenant ID
-     * @returns {object} Tenant limits
-     */
-    getTenantLimits(tenantId) {
-        if (this.tenantLimits.has(tenantId)) {
-            return this.tenantLimits.get(tenantId);
-        }
-
-        // If not cached, load from database
-        const limits = this.loadTenantLimitsFromDb(tenantId);
-        this.tenantLimits.set(tenantId, limits);
-        return limits;
-    }
-
-    /**
-     * Load tenant limits from database
-     * @param {string} tenantId - Tenant ID
-     * @returns {object} Tenant limits
-     */
-    loadTenantLimitsFromDb(tenantId) {
-        // In production, this would fetch from Firestore
-        // For now, return default limits merged with any stored limits
-        const storedLimits = this.getStoredLimits(tenantId);
-        return {
-            ...this.defaultLimits,
-            ...storedLimits
-        };
-    }
-
-    /**
-     * Get stored limits for a tenant
-     * @param {string} tenantId - Tenant ID
-     * @returns {object} Stored limits
-     */
-    getStoredLimits(tenantId) {
-        // This would be a Firestore query in production
-        // For MVP, return empty object (use defaults)
-        return {};
-    }
-
-    /**
-     * Get tenant configuration
-     * @param {string} tenantId - Tenant ID
-     * @returns {object} Tenant configuration
-     */
-    getTenantConfig(tenantId) {
-        if (this.tenantConfigs.has(tenantId)) {
-            return this.tenantConfigs.get(tenantId);
-        }
-
-        const config = this.loadTenantConfigFromDb(tenantId);
-        this.tenantConfigs.set(tenantId, config);
-        return config;
-    }
-
-    /**
-     * Load tenant configuration from database
-     * @param {string} tenantId - Tenant ID
-     * @returns {object} Tenant configuration
-     */
-    loadTenantConfigFromDb(tenantId) {
-        // In production, this would fetch from Firestore
-        return {
-            companyName: 'Default Company',
-            timezone: 'Asia/Kolkata',
-            currency: 'INR',
-            language: 'en',
-            gstEnabled: true,
-            whatsappEnabled: true,
-            aiEnabled: true
-        };
-    }
-
-    /**
-     * Check if tenant is active
-     * @param {string} tenantId - Tenant ID
-     * @returns {boolean} Whether tenant is active
-     */
-    isTenantActive(tenantId) {
-        // In production, this would check Firestore
-        // For MVP, assume all tenants are active
         return true;
     }
 
     /**
-     * Check if a tenant has reached a limit
-     * @param {string} tenantId - Tenant ID
-     * @param {string} limitName - Limit name
-     * @param {number} currentValue - Current usage value
-     * @returns {boolean} Whether limit is exceeded
+     * Assign role to user
+     * @param {string} userId - User ID
+     * @param {string} roleId - Role ID
+     * @param {object} options - Additional options
+     * @returns {boolean} Whether role was assigned
+     * @throws {Error} If role not found
      */
-    isLimitExceeded(tenantId, limitName, currentValue) {
-        const limits = this.getTenantLimits(tenantId);
-        const limit = limits[limitName];
+    assignRole(userId, roleId, options = {}) {
+        if (!this.roles.has(roleId)) {
+            throw new Error(`Role ${roleId} not found`);
+        }
+
+        if (!this.userRoles.has(userId)) {
+            this.userRoles.set(userId, []);
+        }
+
+        const roles = this.userRoles.get(userId);
         
-        if (!limit) {
-            return false;
-        }
+        if (!roles.includes(roleId)) {
+            roles.push(roleId);
+            this.userRoles.set(userId, roles);
+            
+            // Clear permission cache for user
+            this.clearUserPermissionCache(userId);
 
-        return currentValue >= limit;
-    }
-
-    /**
-     * Get remaining quota for a limit
-     * @param {string} tenantId - Tenant ID
-     * @param {string} limitName - Limit name
-     * @param {number} currentValue - Current usage value
-     * @returns {number} Remaining quota
-     */
-    getRemainingQuota(tenantId, limitName, currentValue) {
-        const limits = this.getTenantLimits(tenantId);
-        const limit = limits[limitName];
-        
-        if (!limit) {
-            return Infinity;
-        }
-
-        return Math.max(0, limit - currentValue);
-    }
-
-    /**
-     * Validate cross-tenant operation
-     * @param {string} sourceTenant - Source tenant ID
-     * @param {string} targetTenant - Target tenant ID
-     * @param {string} operation - Operation name
-     * @returns {boolean} Whether operation is allowed
-     */
-    validateCrossTenantOperation(sourceTenant, targetTenant, operation) {
-        // Allow if same tenant
-        if (sourceTenant === targetTenant) {
-            return true;
-        }
-
-        // Check if cross-tenant operations are allowed
-        const isSystemOperation = ['backup', 'restore', 'migration'].includes(operation);
-        const isAdminOperation = ['audit', 'reporting'].includes(operation);
-
-        if (isSystemOperation || isAdminOperation) {
-            // System operations may be allowed with proper authorization
             if (this.debugMode) {
-                console.log(`[TenantIsolation] Cross-tenant ${operation} allowed (system/admin)`);
+                console.log(`[RoleEngine] Assigned role ${roleId} to user ${userId}`);
             }
             return true;
         }
 
         if (this.debugMode) {
-            console.warn(`[TenantIsolation] Cross-tenant ${operation} denied: ${sourceTenant} → ${targetTenant}`);
+            console.log(`[RoleEngine] User ${userId} already has role ${roleId}`);
+        }
+        return false;
+    }
+
+    /**
+     * Remove role from user
+     * @param {string} userId - User ID
+     * @param {string} roleId - Role ID
+     * @param {object} options - Additional options
+     * @returns {boolean} Whether role was removed
+     */
+    removeRole(userId, roleId, options = {}) {
+        if (!this.userRoles.has(userId)) {
+            return false;
+        }
+
+        const roles = this.userRoles.get(userId);
+        const index = roles.indexOf(roleId);
+        
+        if (index === -1) {
+            return false;
+        }
+
+        roles.splice(index, 1);
+        
+        if (roles.length === 0) {
+            this.userRoles.delete(userId);
+        } else {
+            this.userRoles.set(userId, roles);
+        }
+
+        // Clear permission cache for user
+        this.clearUserPermissionCache(userId);
+
+        if (this.debugMode) {
+            console.log(`[RoleEngine] Removed role ${roleId} from user ${userId}`);
+        }
+
+        return true;
+    }
+
+    /**
+     * Get user's roles
+     * @param {string} userId - User ID
+     * @param {object} options - Additional options
+     * @returns {Array} List of role IDs
+     */
+    getUserRoles(userId, options = {}) {
+        if (!this.userRoles.has(userId)) {
+            return [];
+        }
+
+        const roles = this.userRoles.get(userId);
+        
+        if (options.includeHierarchy) {
+            // Include inherited roles
+            const allRoles = new Set(roles);
+            for (const roleId of roles) {
+                const children = this.roleHierarchy.get(roleId) || [];
+                for (const child of children) {
+                    allRoles.add(child);
+                }
+            }
+            return Array.from(allRoles);
+        }
+
+        return [...roles];
+    }
+
+    /**
+     * Get all users with a specific role
+     * @param {string} roleId - Role ID
+     * @param {object} options - Additional options
+     * @returns {Array} List of user IDs
+     */
+    getUsersWithRole(roleId, options = {}) {
+        const users = [];
+        for (const [userId, roles] of this.userRoles) {
+            if (roles.includes(roleId)) {
+                users.push(userId);
+            }
+        }
+        return users;
+    }
+
+    /**
+     * Check if user has permission
+     * @param {string} userId - User ID
+     * @param {string} permission - Permission to check
+     * @param {object} options - Additional options
+     * @returns {boolean} Whether user has permission
+     */
+    hasPermission(userId, permission, options = {}) {
+        // Check cache first
+        const cacheKey = `${userId}:${permission}`;
+        if (this.permissionCache.has(cacheKey)) {
+            const cached = this.permissionCache.get(cacheKey);
+            const timestamp = this.cacheTimestamps.get(cacheKey) || 0;
+            if (Date.now() - timestamp < this.cacheTTL) {
+                return cached;
+            }
+        }
+
+        const roles = this.getUserRoles(userId, { includeHierarchy: true });
+        
+        for (const roleId of roles) {
+            const role = this.roles.get(roleId);
+            if (!role) continue;
+            
+            // Check for wildcard permission
+            if (role.permissions.includes('*')) {
+                this.cachePermission(cacheKey, true);
+                return true;
+            }
+            
+            if (role.permissions.includes(permission)) {
+                this.cachePermission(cacheKey, true);
+                return true;
+            }
+        }
+
+        this.cachePermission(cacheKey, false);
+        return false;
+    }
+
+    /**
+     * Check if user has role
+     * @param {string} userId - User ID
+     * @param {string} roleId - Role ID
+     * @param {object} options - Additional options
+     * @returns {boolean} Whether user has role
+     */
+    hasRole(userId, roleId, options = {}) {
+        const roles = this.getUserRoles(userId, options);
+        return roles.includes(roleId);
+    }
+
+    /**
+     * Get all permissions for a role
+     * @param {string} roleId - Role ID
+     * @param {object} options - Additional options
+     * @returns {Array} List of permissions
+     */
+    getPermissionsForRole(roleId, options = {}) {
+        const role = this.roles.get(roleId);
+        if (!role) {
+            return [];
+        }
+
+        let permissions = [...role.permissions];
+        
+        if (options.includeInherited) {
+            // Include permissions from parent roles
+            const parents = this.roleHierarchy.get(roleId) || [];
+            for (const parentId of parents) {
+                const parentRole = this.roles.get(parentId);
+                if (parentRole) {
+                    permissions = [...permissions, ...parentRole.permissions];
+                }
+            }
+            // Remove duplicates
+            permissions = [...new Set(permissions)];
+        }
+
+        return permissions;
+    }
+
+    /**
+     * Add permission to role
+     * @param {string} roleId - Role ID
+     * @param {string} permission - Permission to add
+     * @param {object} options - Additional options
+     * @returns {boolean} Whether permission was added
+     */
+    addPermissionToRole(roleId, permission, options = {}) {
+        if (!this.roles.has(roleId)) {
+            throw new Error(`Role ${roleId} not found`);
+        }
+
+        const role = this.roles.get(roleId);
+        
+        if (role.isSystem && !options.forceUpdate) {
+            throw new Error(`Cannot modify system role: ${roleId}`);
+        }
+
+        if (!role.permissions.includes(permission)) {
+            role.permissions.push(permission);
+            this.roles.set(roleId, role);
+            
+            // Clear permission cache for this role
+            this.clearPermissionCache(roleId);
+
+            if (this.debugMode) {
+                console.log(`[RoleEngine] Added permission ${permission} to role ${roleId}`);
+            }
+            return true;
         }
 
         return false;
     }
 
     /**
-     * Get tenant-specific data isolation rules
-     * @param {string} tenantId - Tenant ID
-     * @returns {object} Isolation rules
+     * Remove permission from role
+     * @param {string} roleId - Role ID
+     * @param {string} permission - Permission to remove
+     * @param {object} options - Additional options
+     * @returns {boolean} Whether permission was removed
      */
-    getIsolationRules(tenantId) {
-        // Define isolation rules for different data types
-        return {
-            // Strict isolation - no cross-tenant access
-            strict: [
-                'leads',
-                'customers',
-                'deals',
-                'tasks',
-                'invoices',
-                'whatsapp_messages',
-                'activity_logs'
-            ],
-            // Soft isolation - may be accessible in some contexts
-            soft: [
-                'templates',
-                'settings',
-                'integrations'
-            ],
-            // Public - accessible across tenants
-            public: [
-                'system_config',
-                'public_templates'
-            ]
-        };
-    }
-
-    /**
-     * Check if an operation is allowed on a tenant
-     * @param {string} tenantId - Tenant ID
-     * @param {string} operation - Operation name
-     * @param {object} user - User object
-     * @returns {boolean} Whether operation is allowed
-     */
-    isOperationAllowed(tenantId, operation, user) {
-        // Super admins can do anything
-        if (user.role === 'super_admin' || user.role === 'platform_owner') {
-            return true;
+    removePermissionFromRole(roleId, permission, options = {}) {
+        if (!this.roles.has(roleId)) {
+            throw new Error(`Role ${roleId} not found`);
         }
 
-        // Check if user belongs to the tenant
-        if (user.tenantId !== tenantId) {
+        const role = this.roles.get(roleId);
+        
+        if (role.isSystem && !options.forceUpdate) {
+            throw new Error(`Cannot modify system role: ${roleId}`);
+        }
+
+        // Don't remove wildcard permission
+        if (permission === '*') {
             return false;
         }
 
-        // Check tenant status
-        if (!this.isTenantActive(tenantId)) {
+        const index = role.permissions.indexOf(permission);
+        if (index === -1) {
             return false;
         }
 
-        // Check operation-specific permissions
-        const allowedOperations = this.getAllowedOperations(tenantId);
-        return allowedOperations.includes(operation);
+        role.permissions.splice(index, 1);
+        this.roles.set(roleId, role);
+        
+        // Clear permission cache for this role
+        this.clearPermissionCache(roleId);
+
+        if (this.debugMode) {
+            console.log(`[RoleEngine] Removed permission ${permission} from role ${roleId}`);
+        }
+
+        return true;
     }
 
     /**
-     * Get allowed operations for a tenant
-     * @param {string} tenantId - Tenant ID
-     * @returns {Array} List of allowed operations
+     * Validate role hierarchy
+     * @param {string} parentRole - Parent role ID
+     * @param {string} childRole - Child role ID
+     * @param {object} options - Additional options
+     * @returns {boolean} Whether hierarchy is valid
      */
-    getAllowedOperations(tenantId) {
-        // In production, this would be fetched from tenant config
-        return [
-            'create',
-            'read',
-            'update',
-            'delete',
-            'export',
-            'import',
-            'backup',
-            'restore'
-        ];
+    validateRoleHierarchy(parentRole, childRole, options = {}) {
+        if (!this.roles.has(parentRole) || !this.roles.has(childRole)) {
+            return false;
+        }
+
+        const parent = this.roles.get(parentRole);
+        const child = this.roles.get(childRole);
+
+        // Parent must have higher level than child
+        if (parent.level <= child.level) {
+            if (this.debugMode) {
+                console.warn(`[RoleEngine] Invalid hierarchy: ${parentRole} (${parent.level}) <= ${childRole} (${child.level})`);
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Get role hierarchy for a role
+     * @param {string} roleId - Role ID
+     * @param {object} options - Additional options
+     * @returns {Array} List of role IDs in hierarchy
+     */
+    getRoleHierarchy(roleId, options = {}) {
+        const hierarchy = [roleId];
+        
+        if (options.includeChildren) {
+            const children = this.roleHierarchy.get(roleId) || [];
+            hierarchy.push(...children);
+        }
+        
+        if (options.includeParents) {
+            for (const [parent, children] of this.roleHierarchy) {
+                if (children.includes(roleId)) {
+                    hierarchy.push(parent);
+                }
+            }
+        }
+
+        return hierarchy;
+    }
+
+    /**
+     * Cache permission result
+     * @param {string} key - Cache key
+     * @param {boolean} value - Permission result
+     */
+    cachePermission(key, value) {
+        this.permissionCache.set(key, value);
+        this.cacheTimestamps.set(key, Date.now());
+    }
+
+    /**
+     * Clear permission cache for a role
+     * @param {string} roleId - Role ID
+     */
+    clearPermissionCache(roleId) {
+        // Remove all cache entries that might be affected by this role
+        const toRemove = [];
+        for (const key of this.permissionCache.keys()) {
+            // Check if key contains roleId
+            if (key.includes(roleId)) {
+                toRemove.push(key);
+            }
+        }
+        for (const key of toRemove) {
+            this.permissionCache.delete(key);
+            this.cacheTimestamps.delete(key);
+        }
+    }
+
+    /**
+     * Clear permission cache for a user
+     * @param {string} userId - User ID
+     */
+    clearUserPermissionCache(userId) {
+        const toRemove = [];
+        for (const key of this.permissionCache.keys()) {
+            if (key.startsWith(`${userId}:`)) {
+                toRemove.push(key);
+            }
+        }
+        for (const key of toRemove) {
+            this.permissionCache.delete(key);
+            this.cacheTimestamps.delete(key);
+        }
+    }
+
+    /**
+     * Clear all permission cache
+     */
+    clearAllPermissionCache() {
+        this.permissionCache.clear();
+        this.cacheTimestamps.clear();
     }
 
     /**
@@ -419,7 +812,7 @@ class TenantIsolation {
      */
     enableDebug() {
         this.debugMode = true;
-        console.log('[TenantIsolation] Debug mode enabled');
+        console.log('[RoleEngine] Debug mode enabled');
     }
 
     /**
@@ -430,90 +823,41 @@ class TenantIsolation {
     }
 
     /**
-     * Clear tenant cache
+     * Get role statistics
+     * @param {object} options - Additional options
+     * @returns {object} Role statistics
      */
-    clearCache() {
-        this.tenantConfigs.clear();
-        this.tenantLimits.clear();
-        
-        if (this.debugMode) {
-            console.log('[TenantIsolation] Cache cleared');
-        }
-    }
-
-    /**
-     * Get tenant statistics
-     * @param {string} tenantId - Tenant ID
-     * @returns {object} Tenant statistics
-     */
-    getTenantStats(tenantId) {
-        // In production, this would aggregate from Firestore
-        return {
-            totalUsers: 0,
-            totalLeads: 0,
-            totalCustomers: 0,
-            totalDeals: 0,
-            totalInvoices: 0,
-            storageUsed: '0MB',
-            apiCalls: 0
+    getStats(options = {}) {
+        const stats = {
+            totalRoles: this.roles.size,
+            systemRoles: 0,
+            customRoles: 0,
+            totalUsers: this.userRoles.size,
+            roleAssignments: 0,
+            totalPermissions: 0,
+            permissionsByRole: {}
         };
-    }
 
-    /**
-     * Update tenant limits
-     * @param {string} tenantId - Tenant ID
-     * @param {object} newLimits - New limits
-     * @returns {object} Updated limits
-     */
-    updateTenantLimits(tenantId, newLimits) {
-        const currentLimits = this.getTenantLimits(tenantId);
-        const updatedLimits = { ...currentLimits, ...newLimits };
-        
-        this.tenantLimits.set(tenantId, updatedLimits);
-        
-        // In production, save to database
-        this.saveTenantLimits(tenantId, updatedLimits);
-        
-        return updatedLimits;
-    }
-
-    /**
-     * Save tenant limits to database
-     * @param {string} tenantId - Tenant ID
-     * @param {object} limits - Limits to save
-     */
-    saveTenantLimits(tenantId, limits) {
-        // In production, this would save to Firestore
-        if (this.debugMode) {
-            console.log(`[TenantIsolation] Saving limits for ${tenantId}:`, limits);
+        for (const [id, role] of this.roles) {
+            if (role.isSystem) {
+                stats.systemRoles++;
+            } else {
+                stats.customRoles++;
+            }
+            stats.totalPermissions += role.permissions.length;
+            stats.permissionsByRole[id] = role.permissions.length;
         }
-    }
 
-    /**
-     * Get tenant by domain
-     * @param {string} domain - Domain name
-     * @returns {string|null} Tenant ID or null
-     */
-    getTenantByDomain(domain) {
-        // In production, this would query Firestore
-        // For MVP, assume domain mapping
-        return null;
-    }
+        for (const [userId, roles] of this.userRoles) {
+            stats.roleAssignments += roles.length;
+        }
 
-    /**
-     * Get tenant by API key
-     * @param {string} apiKey - API key
-     * @returns {string|null} Tenant ID or null
-     */
-    getTenantByApiKey(apiKey) {
-        // In production, this would query Firestore
-        // For MVP, assume API key mapping
-        return null;
+        return stats;
     }
 }
 
 // Create and export singleton instance
-export const tenantIsolation = new TenantIsolation();
+export const roleEngine = new RoleEngine();
 
 // Export class for testing
-export default TenantIsolation;
+export default RoleEngine;
