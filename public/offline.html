@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Offline - 11 Avatar CRM</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0A0A0A;
+            color: #FFFFFF;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            text-align: center;
+        }
+        .offline-container {
+            max-width: 400px;
+        }
+        .offline-container .icon {
+            font-size: 4rem;
+            margin-bottom: 16px;
+        }
+        .offline-container h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .offline-container h1 .gold {
+            color: #D4AF37;
+        }
+        .offline-container p {
+            color: #888888;
+            font-size: 1rem;
+            line-height: 1.7;
+            margin-bottom: 24px;
+        }
+        .offline-container .btn {
+            display: inline-block;
+            padding: 12px 32px;
+            background: linear-gradient(135deg, #D4AF37, #E8C95A);
+            border: none;
+            border-radius: 10px;
+            color: #0A0A0A;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        .offline-container .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(212, 175, 55, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="icon">📡</div>
+        <h1>You're <span class="gold">Offline</span></h1>
+        <p>Please check your internet connection. Your data is safe and will sync automatically when you're back online.</p>
+        <button class="btn" onclick="location.reload()">Try Again</button>
+    </div>
+</body>
+</html>
