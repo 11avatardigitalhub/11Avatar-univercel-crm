@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Page Not Found - 11 Avatar CRM</title>
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#D4AF37" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <style>
+        :root {
+            --brand-white: #FFFFFF;
+            --brand-gold: #D4AF37;
+            --brand-gold-light: #E8C95A;
+            --brand-gold-dark: #B8960F;
+            --brand-gold-subtle: rgba(212, 175, 55, 0.15);
+            --brand-black: #0A0A0A;
+            --brand-black-light: #1A1A1A;
+            --brand-black-lighter: #2A2A2A;
+            
+            --bg-primary: #0A0A0A;
+            --bg-secondary: #1A1A1A;
+            --bg-card: #1A1A1A;
+            --bg-card-hover: #242424;
+            --bg-input: #242424;
+            --bg-glass: rgba(26, 26, 26, 0.7);
+            
+            --text-primary: #FFFFFF;
+            --text-secondary: #D4AF37;
+            --text-muted: #888888;
+            --text-inverse: #0A0A0A;
+            
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-gold: rgba(212, 175, 55, 0.3);
+            --border-gold-hover: rgba(212, 175, 55, 0.6);
+            
+            --shadow-gold: 0 4px 20px rgba(212, 175, 55, 0.25);
+            --shadow-gold-hover: 0 8px 30px rgba(212, 175, 55, 0.4);
+            --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.6);
+            
+            --btn-primary-bg: linear-gradient(135deg, #D4AF37, #E8C95A);
+            --btn-primary-text: #0A0A0A;
+            --btn-primary-hover: linear-gradient(135deg, #E8C95A, #F5D97E);
+            
+            --font-primary: 'Inter', sans-serif;
+            --font-heading: 'Poppins', 'Inter', sans-serif;
+        }
+        
+        body.light-mode {
+            --bg-primary: #F8F6F0;
+            --bg-secondary: #FFFFFF;
+            --bg-card: #FFFFFF;
+            --bg-card-hover: #F5F3ED;
+            --bg-input: #F0EEE8;
+            --bg-glass: rgba(255, 255, 255, 0.7);
+            --text-primary: #0A0A0A;
+            --text-muted: #666666;
+            --border-color: rgba(0, 0, 0, 0.08);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-primary);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            transition: background 0.3s, color 0.3s;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            right: -30%;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.08) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -40%;
+            left: -20%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.05) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .error-container {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            max-width: 600px;
+            padding: 40px;
+            animation: fadeIn 0.8s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .error-container .error-code {
+            font-family: var(--font-heading);
+            font-size: 8rem;
+            font-weight: 800;
+            line-height: 1;
+            background: linear-gradient(135deg, #D4AF37, #E8C95A, #F5D97E);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
+        .error-container .error-icon {
+            font-size: 4rem;
+            margin-bottom: 16px;
+            display: block;
+        }
+        
+        .error-container h1 {
+            font-family: var(--font-heading);
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        
+        .error-container h1 .gold {
+            color: var(--brand-gold);
+        }
+        
+        .error-container p {
+            color: var(--text-muted);
+            font-size: 1rem;
+            line-height: 1.8;
+            max-width: 440px;
+            margin: 0 auto 32px;
+        }
+        
+        .error-container .error-actions {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .error-container .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 36px;
+            background: var(--btn-primary-bg);
+            border: none;
+            border-radius: 12px;
+            color: var(--btn-primary-text);
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-gold);
+            cursor: pointer;
+        }
+        .error-container .btn-primary:hover {
+            background: var(--btn-primary-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-gold-hover);
+        }
+        
+        .error-container .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 32px;
+            background: transparent;
+            border: 1px solid var(--border-gold);
+            border-radius: 12px;
+            color: var(--brand-gold);
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .error-container .btn-secondary:hover {
+            background: var(--btn-secondary-hover);
+            border-color: var(--border-gold-hover);
+        }
+        
+        .error-container .quick-links {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .error-container .quick-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .error-container .quick-links a:hover {
+            color: var(--brand-gold);
+        }
+        .error-container .quick-links a i {
+            font-size: 0.8rem;
+        }
+        
+        .theme-toggle-404 {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 100;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: var(--shadow-card);
+        }
+        .theme-toggle-404:hover {
+            border-color: var(--brand-gold);
+            color: var(--brand-gold);
+            transform: scale(1.05);
+        }
+        
+        @media (max-width: 480px) {
+            .error-container .error-code { font-size: 5rem; }
+            .error-container { padding: 24px; }
+            .error-container .error-actions { flex-direction: column; align-items: center; }
+            .error-container .btn-primary, .error-container .btn-secondary { width: 100%; justify-content: center; }
+            .theme-toggle-404 { top: 16px; right: 16px; width: 38px; height: 38px; font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <button class="theme-toggle-404" id="themeToggle" aria-label="Toggle theme">
+        <i class="fas fa-moon"></i>
+    </button>
+
+    <div class="error-container">
+        <span class="error-icon">🔍</span>
+        <div class="error-code">404</div>
+        <h1>Page Not <span class="gold">Found</span></h1>
+        <p>Oops! The page you're looking for doesn't exist. It might have been moved, deleted, or the URL might be incorrect.</p>
+        
+        <div class="error-actions">
+            <a href="/dashboard.html" class="btn-primary">
+                <i class="fas fa-home"></i> Go to Dashboard
+            </a>
+            <a href="/index.html" class="btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Home
+            </a>
+        </div>
+        
+        <div class="quick-links">
+            <a href="/leads.html"><i class="fas fa-users"></i> Leads</a>
+            <a href="/whatsapp.html"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+            <a href="/invoices.html"><i class="fas fa-file-invoice"></i> Invoices</a>
+            <a href="/settings.html"><i class="fas fa-cog"></i> Settings</a>
+        </div>
+    </div>
+
+    <script>
+        // Theme
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i');
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        if (savedTheme === 'light') {
+            document.body.classList.add('light-mode');
+            themeIcon.className = 'fas fa-sun';
+        }
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('light-mode');
+            const isLight = document.body.classList.contains('light-mode');
+            themeIcon.className = isLight ? 'fas fa-sun' : 'fas fa-moon';
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        });
+
+        console.log('🔍 11 Avatar CRM - 404 Page Loaded');
+        console.log('🎨 Theme:', savedTheme);
+    </script>
+
+</body>
+</html>
