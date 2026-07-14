@@ -1,0 +1,194 @@
+/**
+ * ==========================================
+ * FILE: light.css
+ * MODULE: Light Theme
+ * VERSION: 2.0.0
+ * ==========================================
+ * 
+ * DESCRIPTION:
+ * Light theme for 11 Avatar CRM.
+ * Used as default for internal pages.
+ * Brand Colors: White, Gold, Black
+ * ==========================================
+ */
+
+body.light-theme,
+body.internal-theme {
+    /* ==========================================
+       BACKGROUNDS
+       ========================================== */
+    --bg-primary: #F8F6F0;
+    --bg-secondary: #FFFFFF;
+    --bg-card: #FFFFFF;
+    --bg-card-hover: #F5F3ED;
+    --bg-card-active: #EDEAE0;
+    --bg-input: #F0EEE8;
+    --bg-input-hover: #E8E5DD;
+    --bg-glass: rgba(255, 255, 255, 0.7);
+    --bg-glass-border: rgba(0, 0, 0, 0.06);
+    --bg-overlay: rgba(0, 0, 0, 0.4);
+    --bg-muted: rgba(0, 0, 0, 0.04);
+    --bg-highlight: rgba(212, 175, 55, 0.08);
+    
+    /* ==========================================
+       TEXT
+       ========================================== */
+    --text-primary: #0A0A0A;
+    --text-secondary: #D4AF37;
+    --text-muted: #666666;
+    --text-muted-light: #888888;
+    --text-inverse: #FFFFFF;
+    --text-hint: #999999;
+    --text-disabled: #BBBBBB;
+    --text-link: #D4AF37;
+    --text-link-hover: #B8960F;
+    
+    /* ==========================================
+       BORDERS
+       ========================================== */
+    --border-color: rgba(0, 0, 0, 0.08);
+    --border-light: rgba(0, 0, 0, 0.04);
+    --border-gold: rgba(212, 175, 55, 0.3);
+    --border-gold-hover: rgba(212, 175, 55, 0.6);
+    --border-gold-active: rgba(212, 175, 55, 0.8);
+    --border-focus: rgba(212, 175, 55, 0.5);
+    
+    /* ==========================================
+       BUTTONS
+       ========================================== */
+    --btn-primary-bg: linear-gradient(135deg, #D4AF37, #E8C95A);
+    --btn-primary-text: #0A0A0A;
+    --btn-primary-hover: linear-gradient(135deg, #E8C95A, #F5D97E);
+    --btn-secondary-bg: transparent;
+    --btn-secondary-border: rgba(212, 175, 55, 0.4);
+    --btn-secondary-text: #D4AF37;
+    --btn-secondary-hover: rgba(212, 175, 55, 0.1);
+    
+    /* ==========================================
+       SHADOWS
+       ========================================== */
+    --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.08);
+    --shadow-card-hover: 0 24px 70px rgba(0, 0, 0, 0.12);
+    --shadow-card-gold: 0 20px 60px rgba(212, 175, 55, 0.1);
+    
+    /* ==========================================
+       SCROLLBAR
+       ========================================== */
+    --scrollbar-track: #F5F3ED;
+    --scrollbar-thumb: rgba(212, 175, 55, 0.3);
+    --scrollbar-thumb-hover: #D4AF37;
+}
+
+/* ==========================================
+   LIGHT THEME SPECIFIC OVERRIDES
+   ========================================== */
+body.light-theme .hero-section::before,
+body.internal-theme .hero-section::before {
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.06) 0%, transparent 70%);
+}
+
+body.light-theme .navbar,
+body.internal-theme .navbar {
+    background: rgba(255, 255, 255, 0.85);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+body.light-theme .sidebar,
+body.internal-theme .sidebar {
+    background: #FFFFFF;
+    border-right: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+body.light-theme .sidebar .nav-item,
+body.internal-theme .sidebar .nav-item {
+    color: #666666;
+}
+body.light-theme .sidebar .nav-item:hover,
+body.internal-theme .sidebar .nav-item:hover {
+    background: #F5F3ED;
+    color: #0A0A0A;
+}
+body.light-theme .sidebar .nav-item.active,
+body.internal-theme .sidebar .nav-item.active {
+    background: rgba(212, 175, 55, 0.12);
+    color: #D4AF37;
+}
+
+body.light-theme .header,
+body.internal-theme .header {
+    background: rgba(255, 255, 255, 0.7);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+body.light-theme .stat-card,
+body.internal-theme .stat-card,
+body.light-theme .panel,
+body.internal-theme .panel,
+body.light-theme .card,
+body.internal-theme .card {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+body.light-theme .stat-card:hover,
+body.internal-theme .stat-card:hover {
+    border-color: rgba(212, 175, 55, 0.3);
+    box-shadow: 0 4px 20px rgba(212, 175, 55, 0.15);
+}
+
+body.light-theme .input-wrapper input,
+body.internal-theme .input-wrapper input,
+body.light-theme .input-wrapper select,
+body.internal-theme .input-wrapper select {
+    background: #F0EEE8;
+    color: #0A0A0A;
+}
+
+body.light-theme .activity-item,
+body.internal-theme .activity-item,
+body.light-theme .lead-item,
+body.internal-theme .lead-item {
+    background: #F5F3ED;
+}
+body.light-theme .activity-item:hover,
+body.internal-theme .activity-item:hover,
+body.light-theme .lead-item:hover,
+body.internal-theme .lead-item:hover {
+    background: #F0EEE8;
+}
+
+body.light-theme .table thead,
+body.internal-theme .table thead {
+    background: #F5F3ED;
+}
+
+body.light-theme .modal,
+body.internal-theme .modal {
+    background: #FFFFFF;
+}
+
+body.light-theme .dropdown-menu,
+body.internal-theme .dropdown-menu {
+    background: #FFFFFF;
+}
+
+body.light-theme .toast,
+body.internal-theme .toast {
+    background: #FFFFFF;
+}
+
+body.light-theme .tooltip .tooltip-text,
+body.internal-theme .tooltip .tooltip-text {
+    background: #FFFFFF;
+}
+
+body.light-theme .skeleton,
+body.internal-theme .skeleton {
+    background: #F5F3ED;
+}
+
+body.light-theme .avatar,
+body.internal-theme .avatar {
+    background: rgba(212, 175, 55, 0.15);
+    color: #D4AF37;
+}
