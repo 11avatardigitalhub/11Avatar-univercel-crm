@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tasks - 11 Avatar CRM</title>
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#D4AF37" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="/src/css/style.css" />
+    <style>
+        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+        .page-header .left h1 { font-family: var(--font-heading); font-size: 1.6rem; font-weight: 700; color: var(--text-primary); }
+        .page-header .left h1 .gold { color: var(--brand-gold); }
+        .page-header .left p { color: var(--text-muted); font-size: 0.9rem; }
+        .task-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+        .task-stats .stat { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 16px; text-align: center; }
+        .task-stats .stat .number { font-family: var(--font-heading); font-size: 1.2rem; font-weight: 700; color: var(--brand-gold); }
+        .task-stats .stat .label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .filter-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; padding: 16px 20px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); }
+        .filter-bar .search-wrapper { flex: 1; min-width: 200px; position: relative; }
+        .filter-bar .search-wrapper i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        .filter-bar .search-wrapper input { width: 100%; padding: 10px 14px 10px 38px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--text-primary); font-size: 0.9rem; outline: none; transition: all var(--transition-fast); }
+        .filter-bar .search-wrapper input:focus { border-color: var(--brand-gold); box-shadow: 0 0 0 4px var(--brand-gold-subtle); }
+        .filter-bar .filter-select { padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--text-primary); font-size: 0.9rem; outline: none; cursor: pointer; min-width: 140px; }
+        .filter-bar .filter-select:focus { border-color: var(--brand-gold); }
+        .btn-filter { padding: 10px 20px; background: var(--btn-primary-bg); border: none; border-radius: var(--radius-md); color: var(--btn-primary-text); font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all var(--transition-fast); }
+        .btn-filter:hover { transform: translateY(-2px); box-shadow: var(--shadow-gold); }
+        .task-list { display: flex; flex-direction: column; gap: 8px; }
+        .task-item { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; transition: all var(--transition-fast); }
+        .task-item:hover { border-color: var(--border-gold); }
+        .task-item .left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+        .task-item .left .checkbox { width: 20px; height: 20px; border: 2px solid var(--border-color); border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all var(--transition-fast); flex-shrink: 0; }
+        .task-item .left .checkbox.done { background: var(--brand-gold); border-color: var(--brand-gold); color: var(--btn-primary-text); }
+        .task-item .left .info .title { font-weight: 500; color: var(--text-primary); font-size: 0.9rem; }
+        .task-item .left .info .desc { font-size: 0.8rem; color: var(--text-muted); }
+        .task-item .right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+        .task-item .right .priority { font-size: 0.6rem; padding: 2px 10px; border-radius: 100px; font-weight: 600; }
+        .task-item .right .priority.high { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
+        .task-item .right .priority.medium { background: rgba(245, 158, 11, 0.15); color: #F59E0B; }
+        .task-item .right .priority.low { background: rgba(16, 185, 129, 0.15); color: #10B981; }
+        .task-item .right .due { font-size: 0.7rem; color: var(--text-muted); }
+        .task-item .right .due.overdue { color: #EF4444; }
+        .task-item .right .actions { display: flex; gap: 4px; }
+        .task-item .right .actions .btn-action { width: 30px; height: 30px; border-radius: var(--radius-sm); border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: all var(--transition-fast); display: flex; align-items: center; justify-content: center; }
+        .task-item .right .actions .btn-action:hover { color: var(--brand-gold); background: var(--brand-gold-subtle); }
+        .task-item.done .left .info .title { text-decoration: line-through; opacity: 0.6; }
+        @media (max-width: 992px) { .task-stats { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 768px) { .filter-bar { flex-direction: column; align-items: stretch; } .filter-bar .search-wrapper { min-width: auto; } .task-item { flex-direction: column; align-items: flex-start; gap: 10px; } .task-item .right { width: 100%; justify-content: flex-start; flex-wrap: wrap; } }
+        @media (max-width: 576px) { .task-stats { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body class="internal-theme">
+    <div class="app">
+        <aside class="sidebar" id="sidebar">
+            <div class="logo"><span class="icon">🚀</span><span>11 <span class="gold">Avatar</span></span></div>
+            <div class="nav-section"><div class="label">Main</div>
+                <a href="/dashboard.html" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
+                <a href="/leads.html" class="nav-item"><i class="fas fa-users"></i> Leads <span class="badge">142</span></a>
+                <a href="/customers.html" class="nav-item"><i class="fas fa-user-tie"></i> Customers <span class="badge">89</span></a>
+                <a href="/sales.html" class="nav-item"><i class="fas fa-chart-line"></i> Sales Pipeline</a>
+                <a href="/tasks.html" class="nav-item active"><i class="fas fa-tasks"></i> Tasks <span class="badge danger">12</span></a>
+            </div>
+            <div class="nav-section"><div class="label">Communications</div>
+                <a href="/whatsapp.html" class="nav-item"><i class="fab fa-whatsapp"></i> WhatsApp <span class="badge danger">8</span></a>
+                <a href="/inbox.html" class="nav-item"><i class="fas fa-inbox"></i> Omnichannel Inbox <span class="badge">23</span></a>
+            </div>
+            <div class="bottom">
+                <div class="user-card"><div class="avatar">RK</div><div class="info"><div class="name">Rajesh Kumar</div><div class="role">Platform Owner</div></div><i class="fas fa-chevron-down" style="margin-left:auto;color:var(--text-muted);font-size:0.7rem;"></i></div>
+            </div>
+        </aside>
+        <div class="main">
+            <header class="header">
+                <div class="left"><button class="sidebar-toggle" id="sidebarToggle"><i class="fas fa-bars"></i></button><div class="page-title">Task <span class="gold">Management</span></div></div>
+                <div class="right">
+                    <div class="search"><i class="fas fa-search"></i><input type="text" placeholder="Search tasks..." /></div>
+                    <button class="icon-btn hide-mobile"><i class="fas fa-bell"></i></button>
+                    <button class="theme-toggle" id="themeToggle"><i class="fas fa-moon"></i></button>
+                    <div class="avatar">RK</div>
+                </div>
+            </header>
+            <div class="content">
+                <div class="page-header">
+                    <div class="left"><h1>Task <span class="gold">Management</span></h1><p>Manage and track all your tasks</p></div>
+                    <div class="right"><button class="btn-primary btn-sm"><i class="fas fa-plus"></i> Add Task</button></div>
+                </div>
+                <div class="task-stats">
+                    <div class="stat"><div class="number">24</div><div class="label">Total Tasks</div></div>
+                    <div class="stat"><div class="number">12</div><div class="label">Pending</div></div>
+                    <div class="stat"><div class="number">8</div><div class="label">In Progress</div></div>
+                    <div class="stat"><div class="number">4</div><div class="label">Completed Today</div></div>
+                </div>
+                <div class="filter-bar">
+                    <div class="search-wrapper"><i class="fas fa-search"></i><input type="text" placeholder="Search tasks..." /></div>
+                    <select class="filter-select"><option value="">All Status</option><option value="pending">Pending</option><option value="in_progress">In Progress</option><option value="completed">Completed</option></select>
+                    <select class="filter-select"><option value="">All Priorities</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+                    <button class="btn-filter"><i class="fas fa-filter"></i> Apply</button>
+                </div>
+                <div class="task-list">
+                    <div class="task-item">
+                        <div class="left"><div class="checkbox" onclick="this.classList.toggle('done')"><i class="fas fa-check"></i></div><div class="info"><div class="title">Call Rahul Sharma</div><div class="desc">Follow up on proposal</div></div></div>
+                        <div class="right"><span class="priority high">High</span><span class="due overdue">Due: Today</span><div class="actions"><button class="btn-action"><i class="fas fa-edit"></i></button><button class="btn-action"><i class="fas fa-trash"></i></button></div></div>
+                    </div>
+                    <div class="task-item">
+                        <div class="left"><div class="checkbox" onclick="this.classList.toggle('done')"><i class="fas fa-check"></i></div><div class="info"><div class="title">Send quotation to Priya</div><div class="desc">Healthcare management suite</div></div></div>
+                        <div class="right"><span class="priority medium">Medium</span><span class="due">Due: Tomorrow</span><div class="actions"><button class="btn-action"><i class="fas fa-edit"></i></button><button class="btn-action"><i class="fas fa-trash"></i></button></div></div>
+                    </div>
+                    <div class="task-item">
+                        <div class="left"><div class="checkbox" onclick="this.classList.toggle('done')"><i class="fas fa-check"></i></div><div class="info"><div class="title">Prepare monthly report</div><div class="desc">Sales performance data</div></div></div>
+                        <div class="right"><span class="priority low">Low</span><span class="due">Due: In 3 days</span><div class="actions"><button class="btn-action"><i class="fas fa-edit"></i></button><button class="btn-action"><i class="fas fa-trash"></i></button></div></div>
+                    </div>
+                    <div class="task-item done">
+                        <div class="left"><div class="checkbox done" onclick="this.classList.toggle('done')"><i class="fas fa-check"></i></div><div class="info"><div class="title">Review contract</div><div class="desc">For Amit Kumar</div></div></div>
+                        <div class="right"><span class="priority medium">Medium</span><span class="due" style="color:var(--text-muted);">Completed: 2 hours ago</span><div class="actions"><button class="btn-action"><i class="fas fa-edit"></i></button><button class="btn-action"><i class="fas fa-trash"></i></button></div></div>
+                    </div>
+                    <div class="task-item done">
+                        <div class="left"><div class="checkbox done" onclick="this.classList.toggle('done')"><i class="fas fa-check"></i></div><div class="info"><div class="title">Update CRM settings</div><div class="desc">Timezone and currency</div></div></div>
+                        <div class="right"><span class="priority low">Low</span><span class="due" style="color:var(--text-muted);">Completed: Yesterday</span><div class="actions"><button class="btn-action"><i class="fas fa-edit"></i></button><button class="btn-action"><i class="fas fa-trash"></i></button></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <script>
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i');
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') { document.body.classList.remove('internal-theme'); document.body.classList.add('public-theme'); themeIcon.className = 'fas fa-moon'; }
+        else { themeIcon.className = 'fas fa-sun'; }
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('internal-theme');
+            document.body.classList.toggle('public-theme');
+            const isLight = document.body.classList.contains('internal-theme');
+            themeIcon.className = isLight ? 'fas fa-sun' : 'fas fa-moon';
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        });
+        const sidebar = document.getElementById('sidebar'); const sidebarOverlay = document.getElementById('sidebarOverlay'); const sidebarToggle = document.getElementById('sidebarToggle');
+        sidebarToggle.addEventListener('click', () => { sidebar.classList.toggle('open'); sidebarOverlay.classList.toggle('show'); });
+        sidebarOverlay.addEventListener('click', () => { sidebar.classList.remove('open'); sidebarOverlay.classList.remove('show'); });
+        console.log('✅ 11 Avatar CRM - Tasks Page Loaded');
+    </script>
+</body>
+</html>
