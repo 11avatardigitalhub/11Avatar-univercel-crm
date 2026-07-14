@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Roadmap - 11 Avatar CRM</title>
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#D4AF37" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="/src/css/style.css" />
+    <style>
+        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+        .page-header .left h1 { font-family: var(--font-heading); font-size: 1.6rem; font-weight: 700; color: var(--text-primary); }
+        .page-header .left h1 .gold { color: var(--brand-gold); }
+        .page-header .left p { color: var(--text-muted); font-size: 0.9rem; }
+        .roadmap-columns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+        .roadmap-column { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); overflow: hidden; }
+        .roadmap-column .column-header { padding: 16px 20px; font-weight: 600; font-size: 0.9rem; color: var(--text-primary); border-bottom: 1px solid var(--border-color); }
+        .roadmap-column .column-header .count { font-size: 0.7rem; color: var(--text-muted); font-weight: 400; }
+        .roadmap-column .column-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; min-height: 300px; }
+        .roadmap-item { background: var(--bg-card-hover); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px 16px; transition: all var(--transition-fast); cursor: pointer; }
+        .roadmap-item:hover { border-color: var(--border-gold); transform: translateY(-2px); }
+        .roadmap-item .title { font-weight: 600; color: var(--text-primary); font-size: 0.9rem; }
+        .roadmap-item .desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+        .roadmap-item .tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+        .roadmap-item .tags .tag { font-size: 0.6rem; padding: 2px 8px; border-radius: 100px; font-weight: 500; }
+        .roadmap-item .tags .tag.ai { background: rgba(139, 92, 246, 0.15); color: #8B5CF6; }
+        .roadmap-item .tags .tag.whatsapp { background: rgba(37, 211, 102, 0.15); color: #25D366; }
+        .roadmap-item .tags .tag.core { background: rgba(59, 130, 246, 0.15); color: #3B82F6; }
+        .roadmap-item .tags .tag.finance { background: rgba(212, 175, 55, 0.15); color: var(--brand-gold); }
+        .roadmap-item .tags .tag.field { background: rgba(16, 185, 129, 0.15); color: #10B981; }
+        .roadmap-item .priority { font-size: 0.6rem; font-weight: 600; padding: 2px 8px; border-radius: 100px; }
+        .roadmap-item .priority.p0 { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
+        .roadmap-item .priority.p1 { background: rgba(245, 158, 11, 0.15); color: #F59E0B; }
+        .roadmap-item .priority.p2 { background: rgba(16, 185, 129, 0.15); color: #10B981; }
+        .roadmap-column.planning .column-header { background: rgba(59, 130, 246, 0.05); border-bottom-color: rgba(59, 130, 246, 0.2); }
+        .roadmap-column.in-progress .column-header { background: rgba(245, 158, 11, 0.05); border-bottom-color: rgba(245, 158, 11, 0.2); }
+        .roadmap-column.completed .column-header { background: rgba(16, 185, 129, 0.05); border-bottom-color: rgba(16, 185, 129, 0.2); }
+        .roadmap-column.backlog .column-header { background: rgba(139, 92, 246, 0.05); border-bottom-color: rgba(139, 92, 246, 0.2); }
+        @media (max-width: 992px) { .roadmap-columns { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 576px) { .roadmap-columns { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body class="internal-theme">
+    <div class="app">
+        <aside class="sidebar" id="sidebar">
+            <div class="logo"><span class="icon">🚀</span><span>11 <span class="gold">Avatar</span></span></div>
+            <div class="nav-section"><div class="label">Main</div>
+                <a href="/dashboard.html" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
+                <a href="/leads.html" class="nav-item"><i class="fas fa-users"></i> Leads <span class="badge">142</span></a>
+                <a href="/customers.html" class="nav-item"><i class="fas fa-user-tie"></i> Customers <span class="badge">89</span></a>
+                <a href="/sales.html" class="nav-item"><i class="fas fa-chart-line"></i> Sales Pipeline</a>
+                <a href="/tasks.html" class="nav-item"><i class="fas fa-tasks"></i> Tasks <span class="badge danger">12</span></a>
+            </div>
+            <div class="nav-section"><div class="label">Analytics</div>
+                <a href="/reports.html" class="nav-item"><i class="fas fa-chart-bar"></i> Reports</a>
+                <a href="/roadmap.html" class="nav-item active"><i class="fas fa-road"></i> Roadmap</a>
+                <a href="/settings.html" class="nav-item"><i class="fas fa-cog"></i> Settings</a>
+            </div>
+            <div class="bottom">
+                <div class="user-card"><div class="avatar">RK</div><div class="info"><div class="name">Rajesh Kumar</div><div class="role">Platform Owner</div></div><i class="fas fa-chevron-down" style="margin-left:auto;color:var(--text-muted);font-size:0.7rem;"></i></div>
+            </div>
+        </aside>
+        <div class="main">
+            <header class="header">
+                <div class="left"><button class="sidebar-toggle" id="sidebarToggle"><i class="fas fa-bars"></i></button><div class="page-title">Product <span class="gold">Roadmap</span></div></div>
+                <div class="right">
+                    <button class="icon-btn hide-mobile"><i class="fas fa-bell"></i></button>
+                    <button class="theme-toggle" id="themeToggle"><i class="fas fa-moon"></i></button>
+                    <div class="avatar">RK</div>
+                </div>
+            </header>
+            <div class="content">
+                <div class="page-header">
+                    <div class="left"><h1>Product <span class="gold">Roadmap</span></h1><p>Track feature progress and upcoming releases</p></div>
+                    <div class="right"><button class="btn-primary btn-sm"><i class="fas fa-plus"></i> Add Feature</button></div>
+                </div>
+                <div class="roadmap-columns">
+                    <div class="roadmap-column planning">
+                        <div class="column-header">📋 Planning <span class="count">(6)</span></div>
+                        <div class="column-body">
+                            <div class="roadmap-item"><div class="title">AI-Powered Sales Assistant</div><div class="desc">Advanced AI copilot for sales teams</div><div class="tags"><span class="tag ai">AI</span></div><span class="priority p0">P0</span></div>
+                            <div class="roadmap-item"><div class="title">Advanced WhatsApp Campaigns</div><div class="desc">Drip campaigns and automation</div><div class="tags"><span class="tag whatsapp">WhatsApp</span></div><span class="priority p1">P1</span></div>
+                            <div class="roadmap-item"><div class="title">Custom Workflow Builder</div><div class="desc">Drag-drop automation workflows</div><div class="tags"><span class="tag core">Core</span></div><span class="priority p1">P1</span></div>
+                        </div>
+                    </div>
+                    <div class="roadmap-column in-progress">
+                        <div class="column-header">⚡ In Progress <span class="count">(4)</span></div>
+                        <div class="column-body">
+                            <div class="roadmap-item"><div class="title">GST Invoicing v2</div><div class="desc">E-way bill, e-invoicing support</div><div class="tags"><span class="tag finance">Finance</span></div><span class="priority p0">P0</span></div>
+                            <div class="roadmap-item"><div class="title">Field Force Mobile App</div><div class="desc">Native Android/iOS app</div><div class="tags"><span class="tag field">Field</span></div><span class="priority p1">P1</span></div>
+                            <div class="roadmap-item"><div class="title">AI Lead Scoring v2</div><div class="desc">Improved scoring algorithm</div><div class="tags"><span class="tag ai">AI</span></div><span class="priority p0">P0</span></div>
+                        </div>
+                    </div>
+                    <div class="roadmap-column completed">
+                        <div class="column-header">✅ Completed <span class="count">(8)</span></div>
+                        <div class="column-body">
+                            <div class="roadmap-item"><div class="title">WhatsApp Integration</div><div class="desc">Full WhatsApp Business API</div><div class="tags"><span class="tag whatsapp">WhatsApp</span></div></div>
+                            <div class="roadmap-item"><div class="title">Multi-Tenant Architecture</div><div class="desc">Complete tenant isolation</div><div class="tags"><span class="tag core">Core</span></div></div>
+                            <div class="roadmap-item"><div class="title">GST Invoicing</div><div class="desc">PDF generation, UPI links</div><div class="tags"><span class="tag finance">Finance</span></div></div>
+                        </div>
+                    </div>
+                    <div class="roadmap-column backlog">
+                        <div class="column-header">📦 Backlog <span class="count">(12)</span></div>
+                        <div class="column-body">
+                            <div class="roadmap-item"><div class="title">Customer 360° View</div><div class="desc">Complete customer profile</div><div class="tags"><span class="tag core">Core</span></div><span class="priority p2">P2</span></div>
+                            <div class="roadmap-item"><div class="title">Franchise Management</div><div class="desc">Multi-branch hierarchy</div><div class="tags"><span class="tag field">Field</span></div><span class="priority p2">P2</span></div>
+                            <div class="roadmap-item"><div class="title">Knowledge Monetization</div><div class="desc">Courses, documents, videos</div><div class="tags"><span class="tag core">Core</span></div><span class="priority p2">P2</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <script>
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i');
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') { document.body.classList.remove('internal-theme'); document.body.classList.add('public-theme'); themeIcon.className = 'fas fa-moon'; }
+        else { themeIcon.className = 'fas fa-sun'; }
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('internal-theme');
+            document.body.classList.toggle('public-theme');
+            const isLight = document.body.classList.contains('internal-theme');
+            themeIcon.className = isLight ? 'fas fa-sun' : 'fas fa-moon';
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        });
+        const sidebar = document.getElementById('sidebar'); const sidebarOverlay = document.getElementById('sidebarOverlay'); const sidebarToggle = document.getElementById('sidebarToggle');
+        sidebarToggle.addEventListener('click', () => { sidebar.classList.toggle('open'); sidebarOverlay.classList.toggle('show'); });
+        sidebarOverlay.addEventListener('click', () => { sidebar.classList.remove('open'); sidebarOverlay.classList.remove('show'); });
+        console.log('🗺️ 11 Avatar CRM - Roadmap Page Loaded');
+    </script>
+</body>
+</html>
