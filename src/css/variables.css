@@ -1,0 +1,483 @@
+/**
+ * ==========================================
+ * FILE: variables.css
+ * MODULE: CSS Variables
+ * VERSION: 2.0.0
+ * ==========================================
+ * 
+ * DESCRIPTION:
+ * Central CSS variables for 11 Avatar CRM.
+ * Includes brand colors, spacing, typography,
+ * shadows, transitions, and z-index.
+ * 
+ * THEME RULES:
+ * - Public Pages: Dark Mode Default
+ * - Internal Pages: Light Mode Default
+ * - Brand Colors: White, Gold, Black
+ * ==========================================
+ */
+
+:root {
+    /* ==========================================
+       BRAND COLORS
+       ========================================== */
+    
+    /* Primary Brand Colors */
+    --brand-white: #FFFFFF;
+    --brand-gold: #D4AF37;
+    --brand-gold-light: #E8C95A;
+    --brand-gold-dark: #B8960F;
+    --brand-black: #0A0A0A;
+    --brand-black-light: #1A1A1A;
+    --brand-black-lighter: #2A2A2A;
+    
+    /* Brand Gold Variants */
+    --brand-gold-subtle: rgba(212, 175, 55, 0.15);
+    --brand-gold-medium: rgba(212, 175, 55, 0.25);
+    --brand-gold-strong: rgba(212, 175, 55, 0.4);
+    --brand-gold-gradient: linear-gradient(135deg, #D4AF37, #E8C95A, #F5D97E);
+    
+    /* Brand Backgrounds */
+    --brand-warm-white: #F8F6F0;
+    --brand-gold-tint: #F5F3ED;
+    --brand-cream: #FDFBF7;
+    
+    /* ==========================================
+       THEME VARIABLES (Dynamic)
+       ========================================== */
+    
+    /* Backgrounds */
+    --bg-primary: #0A0A0A;
+    --bg-secondary: #1A1A1A;
+    --bg-card: #1A1A1A;
+    --bg-card-hover: #242424;
+    --bg-card-active: #2A2A2A;
+    --bg-input: #242424;
+    --bg-input-hover: #2A2A2A;
+    --bg-glass: rgba(26, 26, 26, 0.7);
+    --bg-glass-border: rgba(255, 255, 255, 0.06);
+    --bg-overlay: rgba(0, 0, 0, 0.6);
+    --bg-muted: rgba(255, 255, 255, 0.04);
+    --bg-highlight: rgba(212, 175, 55, 0.08);
+    
+    /* Text Colors */
+    --text-primary: #FFFFFF;
+    --text-secondary: #D4AF37;
+    --text-muted: #888888;
+    --text-muted-light: #AAAAAA;
+    --text-inverse: #0A0A0A;
+    --text-hint: #666666;
+    --text-disabled: #444444;
+    --text-link: #D4AF37;
+    --text-link-hover: #E8C95A;
+    
+    /* Border Colors */
+    --border-color: rgba(255, 255, 255, 0.08);
+    --border-light: rgba(255, 255, 255, 0.04);
+    --border-gold: rgba(212, 175, 55, 0.3);
+    --border-gold-hover: rgba(212, 175, 55, 0.6);
+    --border-gold-active: rgba(212, 175, 55, 0.8);
+    --border-focus: rgba(212, 175, 55, 0.5);
+    
+    /* ==========================================
+       BUTTON COLORS
+       ========================================== */
+    --btn-primary-bg: linear-gradient(135deg, #D4AF37, #E8C95A);
+    --btn-primary-text: #0A0A0A;
+    --btn-primary-hover: linear-gradient(135deg, #E8C95A, #F5D97E);
+    --btn-primary-active: #B8960F;
+    --btn-primary-disabled: #888888;
+    
+    --btn-secondary-bg: transparent;
+    --btn-secondary-border: rgba(212, 175, 55, 0.4);
+    --btn-secondary-text: #D4AF37;
+    --btn-secondary-hover: rgba(212, 175, 55, 0.1);
+    --btn-secondary-active: rgba(212, 175, 55, 0.2);
+    
+    --btn-danger-bg: #EF4444;
+    --btn-danger-hover: #DC2626;
+    --btn-success-bg: #10B981;
+    --btn-success-hover: #059669;
+    --btn-warning-bg: #F59E0B;
+    --btn-warning-hover: #D97706;
+    --btn-info-bg: #3B82F6;
+    --btn-info-hover: #2563EB;
+    
+    /* ==========================================
+       STATUS COLORS
+       ========================================== */
+    --status-new: #3B82F6;
+    --status-contacted: #D4AF37;
+    --status-qualified: #10B981;
+    --status-converted: #059669;
+    --status-lost: #EF4444;
+    --status-active: #10B981;
+    --status-inactive: #EF4444;
+    --status-pending: #F59E0B;
+    --status-hot: #EF4444;
+    --status-warm: #F59E0B;
+    --status-cold: #3B82F6;
+    
+    /* ==========================================
+       SEMANTIC COLORS
+       ========================================== */
+    --success: #10B981;
+    --success-bg: rgba(16, 185, 129, 0.12);
+    --success-border: rgba(16, 185, 129, 0.25);
+    
+    --warning: #F59E0B;
+    --warning-bg: rgba(245, 158, 11, 0.12);
+    --warning-border: rgba(245, 158, 11, 0.25);
+    
+    --danger: #EF4444;
+    --danger-bg: rgba(239, 68, 68, 0.12);
+    --danger-border: rgba(239, 68, 68, 0.25);
+    
+    --info: #3B82F6;
+    --info-bg: rgba(59, 130, 246, 0.12);
+    --info-border: rgba(59, 130, 246, 0.25);
+    
+    --purple: #8B5CF6;
+    --purple-bg: rgba(139, 92, 246, 0.12);
+    --purple-border: rgba(139, 92, 246, 0.25);
+    
+    --pink: #EC4899;
+    --pink-bg: rgba(236, 72, 153, 0.12);
+    
+    --orange: #F97316;
+    --orange-bg: rgba(249, 115, 22, 0.12);
+    
+    /* ==========================================
+       FONTS
+       ========================================== */
+    --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-heading: 'Poppins', 'Inter', 'Segoe UI', sans-serif;
+    --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    
+    /* Font Sizes */
+    --font-xs: 0.75rem;    /* 12px */
+    --font-sm: 0.875rem;   /* 14px */
+    --font-base: 1rem;     /* 16px */
+    --font-lg: 1.125rem;   /* 18px */
+    --font-xl: 1.25rem;    /* 20px */
+    --font-2xl: 1.5rem;    /* 24px */
+    --font-3xl: 1.875rem;  /* 30px */
+    --font-4xl: 2.25rem;   /* 36px */
+    --font-5xl: 3rem;      /* 48px */
+    --font-6xl: 3.75rem;   /* 60px */
+    
+    /* Font Weights */
+    --font-light: 300;
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
+    --font-extrabold: 800;
+    --font-black: 900;
+    
+    /* Line Heights */
+    --leading-none: 1;
+    --leading-tight: 1.2;
+    --leading-normal: 1.5;
+    --leading-relaxed: 1.7;
+    --leading-loose: 2;
+    
+    /* Letter Spacing */
+    --tracking-tight: -0.02em;
+    --tracking-normal: 0;
+    --tracking-wide: 0.05em;
+    --tracking-wider: 0.1em;
+    --tracking-widest: 0.2em;
+    
+    /* ==========================================
+       SPACING (8px Grid)
+       ========================================== */
+    --space-0: 0;
+    --space-0-5: 0.125rem;  /* 2px */
+    --space-1: 0.25rem;     /* 4px */
+    --space-1-5: 0.375rem;  /* 6px */
+    --space-2: 0.5rem;      /* 8px */
+    --space-2-5: 0.625rem;  /* 10px */
+    --space-3: 0.75rem;     /* 12px */
+    --space-3-5: 0.875rem;  /* 14px */
+    --space-4: 1rem;        /* 16px */
+    --space-5: 1.25rem;     /* 20px */
+    --space-6: 1.5rem;      /* 24px */
+    --space-7: 1.75rem;     /* 28px */
+    --space-8: 2rem;        /* 32px */
+    --space-9: 2.25rem;     /* 36px */
+    --space-10: 2.5rem;     /* 40px */
+    --space-12: 3rem;       /* 48px */
+    --space-14: 3.5rem;     /* 56px */
+    --space-16: 4rem;       /* 64px */
+    --space-20: 5rem;       /* 80px */
+    --space-24: 6rem;       /* 96px */
+    --space-28: 7rem;       /* 112px */
+    --space-32: 8rem;       /* 128px */
+    
+    /* ==========================================
+       BORDER RADIUS
+       ========================================== */
+    --radius-none: 0;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 18px;
+    --radius-2xl: 24px;
+    --radius-3xl: 32px;
+    --radius-full: 9999px;
+    
+    /* ==========================================
+       SHADOWS
+       ========================================== */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
+    --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.2);
+    --shadow-2xl: 0 30px 80px rgba(0, 0, 0, 0.25);
+    
+    /* Gold Shadows */
+    --shadow-gold: 0 4px 20px rgba(212, 175, 55, 0.25);
+    --shadow-gold-hover: 0 8px 30px rgba(212, 175, 55, 0.4);
+    --shadow-gold-lg: 0 12px 40px rgba(212, 175, 55, 0.35);
+    --shadow-gold-xl: 0 20px 60px rgba(212, 175, 55, 0.25);
+    
+    /* Card Shadows */
+    --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.15);
+    --shadow-card-hover: 0 24px 70px rgba(0, 0, 0, 0.2);
+    --shadow-card-gold: 0 20px 60px rgba(212, 175, 55, 0.15);
+    
+    /* Inset Shadows */
+    --shadow-inset: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+    --shadow-inset-light: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+    
+    /* ==========================================
+       TRANSITIONS
+       ========================================== */
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.3s ease;
+    --transition-slow: 0.5s ease;
+    --transition-slower: 0.7s ease;
+    --transition-bounce: 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* ==========================================
+       Z-INDEX
+       ========================================== */
+    --z-auto: auto;
+    --z-0: 0;
+    --z-10: 10;
+    --z-20: 20;
+    --z-30: 30;
+    --z-40: 40;
+    --z-50: 50;
+    --z-dropdown: 100;
+    --z-sticky: 200;
+    --z-header: 300;
+    --z-sidebar: 400;
+    --z-modal: 500;
+    --z-overlay: 600;
+    --z-toast: 700;
+    --z-tooltip: 800;
+    --z-max: 999;
+    
+    /* ==========================================
+       CONTAINER
+       ========================================== */
+    --container-max: 1400px;
+    --container-padding: 24px;
+    --container-padding-mobile: 16px;
+    
+    /* ==========================================
+       SIDEBAR
+       ========================================== */
+    --sidebar-width: 260px;
+    --sidebar-width-collapsed: 72px;
+    --sidebar-transition: 0.3s ease;
+    
+    /* ==========================================
+       HEADER
+       ========================================== */
+    --header-height: 70px;
+    --header-height-mobile: 60px;
+    
+    /* ==========================================
+       BREAKPOINTS
+       ========================================== */
+    --breakpoint-sm: 640px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 1024px;
+    --breakpoint-xl: 1280px;
+    --breakpoint-2xl: 1536px;
+}
+
+/* ==========================================
+   THEME 1: PUBLIC PAGES (DARK MODE DEFAULT)
+   ========================================== */
+body.public-theme {
+    --bg-primary: #0A0A0A;
+    --bg-secondary: #1A1A1A;
+    --bg-card: #1A1A1A;
+    --bg-card-hover: #242424;
+    --bg-card-active: #2A2A2A;
+    --bg-input: #242424;
+    --bg-input-hover: #2A2A2A;
+    --bg-glass: rgba(26, 26, 26, 0.7);
+    --bg-glass-border: rgba(255, 255, 255, 0.06);
+    --bg-overlay: rgba(0, 0, 0, 0.6);
+    --bg-muted: rgba(255, 255, 255, 0.04);
+    --bg-highlight: rgba(212, 175, 55, 0.08);
+    
+    --text-primary: #FFFFFF;
+    --text-secondary: #D4AF37;
+    --text-muted: #888888;
+    --text-muted-light: #AAAAAA;
+    --text-inverse: #0A0A0A;
+    --text-hint: #666666;
+    --text-disabled: #444444;
+    --text-link: #D4AF37;
+    --text-link-hover: #E8C95A;
+    
+    --border-color: rgba(255, 255, 255, 0.08);
+    --border-light: rgba(255, 255, 255, 0.04);
+    --border-gold: rgba(212, 175, 55, 0.3);
+    --border-gold-hover: rgba(212, 175, 55, 0.6);
+    --border-gold-active: rgba(212, 175, 55, 0.8);
+    --border-focus: rgba(212, 175, 55, 0.5);
+    
+    --btn-primary-bg: linear-gradient(135deg, #D4AF37, #E8C95A);
+    --btn-primary-text: #0A0A0A;
+    --btn-primary-hover: linear-gradient(135deg, #E8C95A, #F5D97E);
+    --btn-secondary-bg: transparent;
+    --btn-secondary-border: rgba(212, 175, 55, 0.4);
+    --btn-secondary-text: #D4AF37;
+    --btn-secondary-hover: rgba(212, 175, 55, 0.1);
+    
+    --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.4);
+    --shadow-card-hover: 0 24px 70px rgba(0, 0, 0, 0.5);
+    --shadow-card-gold: 0 20px 60px rgba(212, 175, 55, 0.15);
+}
+
+/* ==========================================
+   THEME 2: INTERNAL PAGES (LIGHT MODE DEFAULT)
+   ========================================== */
+body.internal-theme {
+    --bg-primary: #F8F6F0;
+    --bg-secondary: #FFFFFF;
+    --bg-card: #FFFFFF;
+    --bg-card-hover: #F5F3ED;
+    --bg-card-active: #EDEAE0;
+    --bg-input: #F0EEE8;
+    --bg-input-hover: #E8E5DD;
+    --bg-glass: rgba(255, 255, 255, 0.7);
+    --bg-glass-border: rgba(0, 0, 0, 0.06);
+    --bg-overlay: rgba(0, 0, 0, 0.4);
+    --bg-muted: rgba(0, 0, 0, 0.04);
+    --bg-highlight: rgba(212, 175, 55, 0.08);
+    
+    --text-primary: #0A0A0A;
+    --text-secondary: #D4AF37;
+    --text-muted: #666666;
+    --text-muted-light: #888888;
+    --text-inverse: #FFFFFF;
+    --text-hint: #999999;
+    --text-disabled: #BBBBBB;
+    --text-link: #D4AF37;
+    --text-link-hover: #B8960F;
+    
+    --border-color: rgba(0, 0, 0, 0.08);
+    --border-light: rgba(0, 0, 0, 0.04);
+    --border-gold: rgba(212, 175, 55, 0.3);
+    --border-gold-hover: rgba(212, 175, 55, 0.6);
+    --border-gold-active: rgba(212, 175, 55, 0.8);
+    --border-focus: rgba(212, 175, 55, 0.5);
+    
+    --btn-primary-bg: linear-gradient(135deg, #D4AF37, #E8C95A);
+    --btn-primary-text: #0A0A0A;
+    --btn-primary-hover: linear-gradient(135deg, #E8C95A, #F5D97E);
+    --btn-secondary-bg: transparent;
+    --btn-secondary-border: rgba(212, 175, 55, 0.4);
+    --btn-secondary-text: #D4AF37;
+    --btn-secondary-hover: rgba(212, 175, 55, 0.1);
+    
+    --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.08);
+    --shadow-card-hover: 0 24px 70px rgba(0, 0, 0, 0.12);
+    --shadow-card-gold: 0 20px 60px rgba(212, 175, 55, 0.1);
+}
+
+/* ==========================================
+   DARK MODE OVERRIDE (Forced Dark)
+   ========================================== */
+body.dark-mode {
+    --bg-primary: #0A0A0A;
+    --bg-secondary: #1A1A1A;
+    --bg-card: #1A1A1A;
+    --bg-card-hover: #242424;
+    --bg-card-active: #2A2A2A;
+    --bg-input: #242424;
+    --bg-input-hover: #2A2A2A;
+    --bg-glass: rgba(26, 26, 26, 0.7);
+    --bg-glass-border: rgba(255, 255, 255, 0.06);
+    --bg-overlay: rgba(0, 0, 0, 0.6);
+    --bg-muted: rgba(255, 255, 255, 0.04);
+    --bg-highlight: rgba(212, 175, 55, 0.08);
+    
+    --text-primary: #FFFFFF;
+    --text-secondary: #D4AF37;
+    --text-muted: #888888;
+    --text-muted-light: #AAAAAA;
+    --text-inverse: #0A0A0A;
+    --text-hint: #666666;
+    --text-disabled: #444444;
+    --text-link: #D4AF37;
+    --text-link-hover: #E8C95A;
+    
+    --border-color: rgba(255, 255, 255, 0.08);
+    --border-light: rgba(255, 255, 255, 0.04);
+    --border-gold: rgba(212, 175, 55, 0.3);
+    --border-gold-hover: rgba(212, 175, 55, 0.6);
+    --border-gold-active: rgba(212, 175, 55, 0.8);
+    --border-focus: rgba(212, 175, 55, 0.5);
+    
+    --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.4);
+    --shadow-card-hover: 0 24px 70px rgba(0, 0, 0, 0.5);
+}
+
+/* ==========================================
+   LIGHT MODE OVERRIDE (Forced Light)
+   ========================================== */
+body.light-mode {
+    --bg-primary: #F8F6F0;
+    --bg-secondary: #FFFFFF;
+    --bg-card: #FFFFFF;
+    --bg-card-hover: #F5F3ED;
+    --bg-card-active: #EDEAE0;
+    --bg-input: #F0EEE8;
+    --bg-input-hover: #E8E5DD;
+    --bg-glass: rgba(255, 255, 255, 0.7);
+    --bg-glass-border: rgba(0, 0, 0, 0.06);
+    --bg-overlay: rgba(0, 0, 0, 0.4);
+    --bg-muted: rgba(0, 0, 0, 0.04);
+    --bg-highlight: rgba(212, 175, 55, 0.08);
+    
+    --text-primary: #0A0A0A;
+    --text-secondary: #D4AF37;
+    --text-muted: #666666;
+    --text-muted-light: #888888;
+    --text-inverse: #FFFFFF;
+    --text-hint: #999999;
+    --text-disabled: #BBBBBB;
+    --text-link: #D4AF37;
+    --text-link-hover: #B8960F;
+    
+    --border-color: rgba(0, 0, 0, 0.08);
+    --border-light: rgba(0, 0, 0, 0.04);
+    --border-gold: rgba(212, 175, 55, 0.3);
+    --border-gold-hover: rgba(212, 175, 55, 0.6);
+    --border-gold-active: rgba(212, 175, 55, 0.8);
+    --border-focus: rgba(212, 175, 55, 0.5);
+    
+    --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.08);
+    --shadow-card-hover: 0 24px 70px rgba(0, 0, 0, 0.12);
+}
