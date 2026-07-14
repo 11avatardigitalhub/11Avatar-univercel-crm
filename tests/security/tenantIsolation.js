@@ -6,11 +6,13 @@
  * PRIORITY: P0
  * PHASE: 0
  * STATUS: COMPLETED
+ * VERSION: 1.1.0
  * ==========================================
  * 
  * DESCRIPTION:
  * Ensures complete data isolation between tenants.
  * Prevents cross-tenant data access and leakage.
+ * Provides tenant context management, limits, and validation.
  * 
  * DEPENDENCIES:
  * - None (standalone)
@@ -61,11 +63,54 @@ class TenantIsolation {
             maxStorage: '1GB',
             maxApiRequests: 10000,
             maxWhatsAppMessages: 1000,
-            maxConcurrentSessions: 5
+            maxConcurrentSessions: 5,
+            maxTeamMembers: 5,
+            maxBranches: 3,
+            maxDeals: 100,
+            maxInvoices: 50
         };
         
-        // Debug mode
+        // Default configuration for new tenants
+        this.defaultConfig = {
+            companyName: 'Default Company',
+            timezone: 'Asia/Kolkata',
+            currency: 'INR',
+            language: 'en',
+            gstEnabled: true,
+            whatsappEnabled: true,
+            aiEnabled: true,
+            fieldForceEnabled: false,
+            multiBranchEnabled: false,
+            theme: 'light',
+            dateFormat: 'DD/MM/YYYY',
+            timeFormat: '12h'
+        };
+        
+        // Allowed cross-tenant operations
+        this.allowedCrossTenantOps = [
+            'backup',
+            'restore',
+            'migration',
+            'audit',
+            'reporting',
+            'system_health'
+        ];
+        
+        // Debug mode flag
         this.debugMode = false;
+        
+        // Tenant cache TTL (5 minutes)
+        this.cacheTTL = 5 * 60 * 1000;
+        this.cacheTimestamps = new Map();
+        
+        // Storage for tenant metadata
+        this.tenantMetadata = new Map();
+        
+        // Active sessions tracking
+        this.activeSessions = new Map();
+        
+        // Rate limiting per tenant
+        this.rateLimits = new Map();
     }
 
     /**
@@ -81,9 +126,10 @@ class TenantIsolation {
     /**
      * Set current tenant context
      * @param {string} tenantId - Tenant ID
+     * @param {object} options - Additional options
      * @throws {Error} If tenantId is invalid
      */
-    setCurrentTenant(tenantId) {
+    setCurrentTenant(tenantId, options = {}) {
         if (!tenantId || typeof tenantId !== 'string') {
             throw new Error('Tenant ID must be a non-empty string');
         }
@@ -93,17 +139,40 @@ class TenantIsolation {
             throw new Error(`Tenant ${tenantId} is not active or does not exist`);
         }
 
+        // Check if tenant has reached concurrent session limit
+        if (!options.bypassLimits) {
+            const sessionCount = this.activeSessions.get(tenantId) || 0;
+            const limits = this.getTenantLimits(tenantId);
+            if (sessionCount >= limits.maxConcurrentSessions) {
+                throw new Error(`Maximum concurrent sessions (${limits.maxConcurrentSessions}) reached for tenant ${tenantId}`);
+            }
+        }
+
         this.currentTenant = tenantId;
+        
+        // Track session
+        if (!options.bypassTracking) {
+            this.activeSessions.set(tenantId, (this.activeSessions.get(tenantId) || 0) + 1);
+        }
         
         if (this.debugMode) {
             console.log(`[TenantIsolation] Current tenant set to: ${tenantId}`);
+            console.log(`[TenantIsolation] Active sessions: ${this.activeSessions.get(tenantId)}`);
         }
     }
 
     /**
      * Clear current tenant context
+     * @param {object} options - Additional options
      */
-    clearTenantContext() {
+    clearTenantContext(options = {}) {
+        if (this.currentTenant && !options.bypassTracking) {
+            const count = this.activeSessions.get(this.currentTenant) || 0;
+            if (count > 0) {
+                this.activeSessions.set(this.currentTenant, count - 1);
+            }
+        }
+        
         this.currentTenant = null;
         
         if (this.debugMode) {
@@ -114,25 +183,36 @@ class TenantIsolation {
     /**
      * Create a new tenant context for a request
      * @param {string} tenantId - Tenant ID
+     * @param {object} options - Additional options
      * @returns {object} Context object
      */
-    createTenantContext(tenantId) {
+    createTenantContext(tenantId, options = {}) {
+        const limits = this.getTenantLimits(tenantId);
+        const config = this.getTenantConfig(tenantId);
+        const metadata = this.getTenantMetadata(tenantId);
+        
         return {
             tenantId: tenantId,
             timestamp: new Date().toISOString(),
-            limits: this.getTenantLimits(tenantId),
-            config: this.getTenantConfig(tenantId),
-            isActive: this.isTenantActive(tenantId)
+            limits: limits,
+            config: config,
+            metadata: metadata,
+            isActive: this.isTenantActive(tenantId),
+            sessionId: options.sessionId || null,
+            requestId: options.requestId || null,
+            ipAddress: options.ipAddress || null,
+            userAgent: options.userAgent || null
         };
     }
 
     /**
      * Validate if user has access to a tenant
-     * @param {object} user - User object with tenantId
+     * @param {object} user - User object with tenantId and role
      * @param {string} tenantId - Tenant ID to check
+     * @param {object} options - Additional options
      * @returns {boolean} Whether user has access
      */
-    validateTenantAccess(user, tenantId) {
+    validateTenantAccess(user, tenantId, options = {}) {
         if (!user || !user.tenantId) {
             if (this.debugMode) {
                 console.warn('[TenantIsolation] Invalid user object for validation');
@@ -141,15 +221,35 @@ class TenantIsolation {
         }
 
         // Platform owners and super admins bypass tenant restriction
-        if (user.role === 'platform_owner' || user.role === 'super_admin') {
+        const bypassRoles = ['platform_owner', 'super_admin'];
+        if (bypassRoles.includes(user.role)) {
             if (this.debugMode) {
                 console.log(`[TenantIsolation] Bypass access for role: ${user.role}`);
             }
             return true;
         }
 
+        // Check if tenant is active
+        if (!this.isTenantActive(tenantId)) {
+            if (this.debugMode) {
+                console.warn(`[TenantIsolation] Tenant ${tenantId} is not active`);
+            }
+            return false;
+        }
+
         // Regular users can only access their own tenant
         const hasAccess = user.tenantId === tenantId;
+        
+        // Check if user has specific permissions
+        if (hasAccess && options.permission) {
+            const userPermissions = user.permissions || [];
+            if (!userPermissions.includes(options.permission)) {
+                if (this.debugMode) {
+                    console.warn(`[TenantIsolation] User lacks permission: ${options.permission}`);
+                }
+                return false;
+            }
+        }
         
         if (!hasAccess && this.debugMode) {
             console.warn(`[TenantIsolation] Access denied: User tenant ${user.tenantId} != Requested tenant ${tenantId}`);
@@ -162,13 +262,19 @@ class TenantIsolation {
      * Enforce tenant filter on a query
      * @param {object} query - Query object
      * @param {string} tenantId - Tenant ID (optional)
+     * @param {object} options - Additional options
      * @returns {object} Query with tenant filter applied
      */
-    enforceTenantQuery(query, tenantId = null) {
+    enforceTenantQuery(query, tenantId = null, options = {}) {
         const effectiveTenantId = tenantId || this.getCurrentTenant();
         
         if (!effectiveTenantId) {
             throw new Error('No tenant context available for query');
+        }
+
+        // Check if query should bypass tenant filter
+        if (options.bypassTenantFilter) {
+            return query;
         }
 
         // Add tenant filter to query
@@ -177,6 +283,11 @@ class TenantIsolation {
             where: {
                 ...(query.where || {}),
                 tenantId: effectiveTenantId
+            },
+            _tenantInfo: {
+                tenantId: effectiveTenantId,
+                enforced: true,
+                timestamp: new Date().toISOString()
             }
         };
     }
@@ -184,16 +295,23 @@ class TenantIsolation {
     /**
      * Get tenant limits
      * @param {string} tenantId - Tenant ID
+     * @param {object} options - Additional options
      * @returns {object} Tenant limits
      */
-    getTenantLimits(tenantId) {
-        if (this.tenantLimits.has(tenantId)) {
-            return this.tenantLimits.get(tenantId);
+    getTenantLimits(tenantId, options = {}) {
+        // Check cache first
+        if (this.tenantLimits.has(tenantId) && !options.forceRefresh) {
+            const timestamp = this.cacheTimestamps.get(tenantId) || 0;
+            if (Date.now() - timestamp < this.cacheTTL) {
+                return this.tenantLimits.get(tenantId);
+            }
         }
 
-        // If not cached, load from database
+        // Load from database
         const limits = this.loadTenantLimitsFromDb(tenantId);
         this.tenantLimits.set(tenantId, limits);
+        this.cacheTimestamps.set(tenantId, Date.now());
+        
         return limits;
     }
 
@@ -226,15 +344,22 @@ class TenantIsolation {
     /**
      * Get tenant configuration
      * @param {string} tenantId - Tenant ID
+     * @param {object} options - Additional options
      * @returns {object} Tenant configuration
      */
-    getTenantConfig(tenantId) {
-        if (this.tenantConfigs.has(tenantId)) {
-            return this.tenantConfigs.get(tenantId);
+    getTenantConfig(tenantId, options = {}) {
+        // Check cache first
+        if (this.tenantConfigs.has(tenantId) && !options.forceRefresh) {
+            const timestamp = this.cacheTimestamps.get(`config_${tenantId}`) || 0;
+            if (Date.now() - timestamp < this.cacheTTL) {
+                return this.tenantConfigs.get(tenantId);
+            }
         }
 
         const config = this.loadTenantConfigFromDb(tenantId);
         this.tenantConfigs.set(tenantId, config);
+        this.cacheTimestamps.set(`config_${tenantId}`, Date.now());
+        
         return config;
     }
 
@@ -245,23 +370,65 @@ class TenantIsolation {
      */
     loadTenantConfigFromDb(tenantId) {
         // In production, this would fetch from Firestore
+        // For MVP, return default config merged with stored config
+        const storedConfig = this.getStoredConfig(tenantId);
         return {
-            companyName: 'Default Company',
-            timezone: 'Asia/Kolkata',
-            currency: 'INR',
-            language: 'en',
-            gstEnabled: true,
-            whatsappEnabled: true,
-            aiEnabled: true
+            ...this.defaultConfig,
+            ...storedConfig
+        };
+    }
+
+    /**
+     * Get stored configuration for a tenant
+     * @param {string} tenantId - Tenant ID
+     * @returns {object} Stored configuration
+     */
+    getStoredConfig(tenantId) {
+        // This would be a Firestore query in production
+        // For MVP, return empty object (use defaults)
+        return {};
+    }
+
+    /**
+     * Get tenant metadata
+     * @param {string} tenantId - Tenant ID
+     * @param {object} options - Additional options
+     * @returns {object} Tenant metadata
+     */
+    getTenantMetadata(tenantId, options = {}) {
+        if (this.tenantMetadata.has(tenantId) && !options.forceRefresh) {
+            return this.tenantMetadata.get(tenantId);
+        }
+
+        const metadata = this.loadTenantMetadata(tenantId);
+        this.tenantMetadata.set(tenantId, metadata);
+        
+        return metadata;
+    }
+
+    /**
+     * Load tenant metadata from database
+     * @param {string} tenantId - Tenant ID
+     * @returns {object} Tenant metadata
+     */
+    loadTenantMetadata(tenantId) {
+        // In production, this would fetch from Firestore
+        return {
+            created: new Date().toISOString(),
+            subscription: 'free',
+            status: 'active',
+            plan: 'free',
+            features: ['leads', 'tasks', 'whatsapp']
         };
     }
 
     /**
      * Check if tenant is active
      * @param {string} tenantId - Tenant ID
+     * @param {object} options - Additional options
      * @returns {boolean} Whether tenant is active
      */
-    isTenantActive(tenantId) {
+    isTenantActive(tenantId, options = {}) {
         // In production, this would check Firestore
         // For MVP, assume all tenants are active
         return true;
@@ -272,13 +439,19 @@ class TenantIsolation {
      * @param {string} tenantId - Tenant ID
      * @param {string} limitName - Limit name
      * @param {number} currentValue - Current usage value
+     * @param {object} options - Additional options
      * @returns {boolean} Whether limit is exceeded
      */
-    isLimitExceeded(tenantId, limitName, currentValue) {
-        const limits = this.getTenantLimits(tenantId);
+    isLimitExceeded(tenantId, limitName, currentValue, options = {}) {
+        const limits = this.getTenantLimits(tenantId, options);
         const limit = limits[limitName];
         
         if (!limit) {
+            return false;
+        }
+
+        // Check if limit is actually a number
+        if (typeof limit !== 'number') {
             return false;
         }
 
@@ -290,13 +463,14 @@ class TenantIsolation {
      * @param {string} tenantId - Tenant ID
      * @param {string} limitName - Limit name
      * @param {number} currentValue - Current usage value
+     * @param {object} options - Additional options
      * @returns {number} Remaining quota
      */
-    getRemainingQuota(tenantId, limitName, currentValue) {
-        const limits = this.getTenantLimits(tenantId);
+    getRemainingQuota(tenantId, limitName, currentValue, options = {}) {
+        const limits = this.getTenantLimits(tenantId, options);
         const limit = limits[limitName];
         
-        if (!limit) {
+        if (!limit || typeof limit !== 'number') {
             return Infinity;
         }
 
@@ -308,20 +482,35 @@ class TenantIsolation {
      * @param {string} sourceTenant - Source tenant ID
      * @param {string} targetTenant - Target tenant ID
      * @param {string} operation - Operation name
+     * @param {object} options - Additional options
      * @returns {boolean} Whether operation is allowed
      */
-    validateCrossTenantOperation(sourceTenant, targetTenant, operation) {
+    validateCrossTenantOperation(sourceTenant, targetTenant, operation, options = {}) {
         // Allow if same tenant
         if (sourceTenant === targetTenant) {
             return true;
         }
 
-        // Check if cross-tenant operations are allowed
-        const isSystemOperation = ['backup', 'restore', 'migration'].includes(operation);
-        const isAdminOperation = ['audit', 'reporting'].includes(operation);
+        // Check if operation is allowed
+        if (!this.allowedCrossTenantOps.includes(operation) && !options.forceAllow) {
+            if (this.debugMode) {
+                console.warn(`[TenantIsolation] Cross-tenant ${operation} not allowed`);
+            }
+            return false;
+        }
 
-        if (isSystemOperation || isAdminOperation) {
-            // System operations may be allowed with proper authorization
+        // Check if target tenant exists
+        if (!this.isTenantActive(targetTenant)) {
+            if (this.debugMode) {
+                console.warn(`[TenantIsolation] Target tenant ${targetTenant} not active`);
+            }
+            return false;
+        }
+
+        // System operations may be allowed with proper authorization
+        const isSystemOp = ['backup', 'restore', 'migration', 'system_health'].includes(operation);
+        
+        if (isSystemOp || options.forceAllow) {
             if (this.debugMode) {
                 console.log(`[TenantIsolation] Cross-tenant ${operation} allowed (system/admin)`);
             }
@@ -338,11 +527,12 @@ class TenantIsolation {
     /**
      * Get tenant-specific data isolation rules
      * @param {string} tenantId - Tenant ID
+     * @param {object} options - Additional options
      * @returns {object} Isolation rules
      */
-    getIsolationRules(tenantId) {
+    getIsolationRules(tenantId, options = {}) {
         // Define isolation rules for different data types
-        return {
+        const baseRules = {
             // Strict isolation - no cross-tenant access
             strict: [
                 'leads',
@@ -351,20 +541,43 @@ class TenantIsolation {
                 'tasks',
                 'invoices',
                 'whatsapp_messages',
-                'activity_logs'
+                'activity_logs',
+                'attendance_records',
+                'visit_logs',
+                'expenses'
             ],
             // Soft isolation - may be accessible in some contexts
             soft: [
                 'templates',
                 'settings',
-                'integrations'
+                'integrations',
+                'reports',
+                'dashboards'
             ],
             // Public - accessible across tenants
             public: [
                 'system_config',
-                'public_templates'
+                'public_templates',
+                'public_workflows'
             ]
         };
+
+        // Allow custom rules per tenant
+        const customRules = this.getCustomIsolationRules(tenantId);
+        return {
+            ...baseRules,
+            ...customRules
+        };
+    }
+
+    /**
+     * Get custom isolation rules for a tenant
+     * @param {string} tenantId - Tenant ID
+     * @returns {object} Custom rules
+     */
+    getCustomIsolationRules(tenantId) {
+        // In production, this would fetch from Firestore
+        return {};
     }
 
     /**
@@ -372,9 +585,10 @@ class TenantIsolation {
      * @param {string} tenantId - Tenant ID
      * @param {string} operation - Operation name
      * @param {object} user - User object
+     * @param {object} options - Additional options
      * @returns {boolean} Whether operation is allowed
      */
-    isOperationAllowed(tenantId, operation, user) {
+    isOperationAllowed(tenantId, operation, user, options = {}) {
         // Super admins can do anything
         if (user.role === 'super_admin' || user.role === 'platform_owner') {
             return true;
@@ -392,7 +606,23 @@ class TenantIsolation {
 
         // Check operation-specific permissions
         const allowedOperations = this.getAllowedOperations(tenantId);
-        return allowedOperations.includes(operation);
+        if (!allowedOperations.includes(operation) && !options.forceAllow) {
+            if (this.debugMode) {
+                console.warn(`[TenantIsolation] Operation ${operation} not allowed for tenant ${tenantId}`);
+            }
+            return false;
+        }
+
+        // Check user permissions for the operation
+        const userPermissions = user.permissions || [];
+        if (!userPermissions.includes(`can_${operation}`) && !options.forceAllow) {
+            if (this.debugMode) {
+                console.warn(`[TenantIsolation] User lacks permission: can_${operation}`);
+            }
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -410,7 +640,9 @@ class TenantIsolation {
             'export',
             'import',
             'backup',
-            'restore'
+            'restore',
+            'share',
+            'archive'
         ];
     }
 
@@ -431,10 +663,16 @@ class TenantIsolation {
 
     /**
      * Clear tenant cache
+     * @param {object} options - Additional options
      */
-    clearCache() {
+    clearCache(options = {}) {
         this.tenantConfigs.clear();
         this.tenantLimits.clear();
+        this.cacheTimestamps.clear();
+        
+        if (!options.keepMetadata) {
+            this.tenantMetadata.clear();
+        }
         
         if (this.debugMode) {
             console.log('[TenantIsolation] Cache cleared');
@@ -444,18 +682,27 @@ class TenantIsolation {
     /**
      * Get tenant statistics
      * @param {string} tenantId - Tenant ID
+     * @param {object} options - Additional options
      * @returns {object} Tenant statistics
      */
-    getTenantStats(tenantId) {
+    getTenantStats(tenantId, options = {}) {
         // In production, this would aggregate from Firestore
+        const metadata = this.getTenantMetadata(tenantId);
+        
         return {
+            tenantId: tenantId,
             totalUsers: 0,
             totalLeads: 0,
             totalCustomers: 0,
             totalDeals: 0,
             totalInvoices: 0,
             storageUsed: '0MB',
-            apiCalls: 0
+            apiCalls: 0,
+            activeSessions: this.activeSessions.get(tenantId) || 0,
+            subscription: metadata.subscription || 'free',
+            status: metadata.status || 'active',
+            created: metadata.created || null,
+            lastActivity: new Date().toISOString()
         };
     }
 
@@ -463,16 +710,22 @@ class TenantIsolation {
      * Update tenant limits
      * @param {string} tenantId - Tenant ID
      * @param {object} newLimits - New limits
+     * @param {object} options - Additional options
      * @returns {object} Updated limits
      */
-    updateTenantLimits(tenantId, newLimits) {
-        const currentLimits = this.getTenantLimits(tenantId);
+    updateTenantLimits(tenantId, newLimits, options = {}) {
+        const currentLimits = this.getTenantLimits(tenantId, options);
         const updatedLimits = { ...currentLimits, ...newLimits };
         
         this.tenantLimits.set(tenantId, updatedLimits);
+        this.cacheTimestamps.set(tenantId, Date.now());
         
         // In production, save to database
         this.saveTenantLimits(tenantId, updatedLimits);
+        
+        if (this.debugMode) {
+            console.log(`[TenantIsolation] Updated limits for ${tenantId}:`, updatedLimits);
+        }
         
         return updatedLimits;
     }
@@ -492,23 +745,121 @@ class TenantIsolation {
     /**
      * Get tenant by domain
      * @param {string} domain - Domain name
+     * @param {object} options - Additional options
      * @returns {string|null} Tenant ID or null
      */
-    getTenantByDomain(domain) {
+    getTenantByDomain(domain, options = {}) {
         // In production, this would query Firestore
         // For MVP, assume domain mapping
+        if (this.debugMode) {
+            console.log(`[TenantIsolation] Looking up tenant for domain: ${domain}`);
+        }
         return null;
     }
 
     /**
      * Get tenant by API key
      * @param {string} apiKey - API key
+     * @param {object} options - Additional options
      * @returns {string|null} Tenant ID or null
      */
-    getTenantByApiKey(apiKey) {
+    getTenantByApiKey(apiKey, options = {}) {
         // In production, this would query Firestore
         // For MVP, assume API key mapping
+        if (this.debugMode) {
+            console.log(`[TenantIsolation] Looking up tenant for API key: ${apiKey.substring(0, 8)}...`);
+        }
         return null;
+    }
+
+    /**
+     * Check rate limit for tenant
+     * @param {string} tenantId - Tenant ID
+     * @param {string} endpoint - API endpoint
+     * @param {number} limit - Rate limit per minute
+     * @returns {boolean} Whether request is allowed
+     */
+    checkRateLimit(tenantId, endpoint, limit) {
+        const key = `${tenantId}:${endpoint}`;
+        const now = Date.now();
+        const windowMs = 60 * 1000; // 1 minute window
+        
+        if (!this.rateLimits.has(key)) {
+            this.rateLimits.set(key, {
+                count: 1,
+                reset: now + windowMs
+            });
+            return true;
+        }
+        
+        const data = this.rateLimits.get(key);
+        
+        // Reset if window expired
+        if (now > data.reset) {
+            this.rateLimits.set(key, {
+                count: 1,
+                reset: now + windowMs
+            });
+            return true;
+        }
+        
+        // Check if limit exceeded
+        if (data.count >= limit) {
+            if (this.debugMode) {
+                console.warn(`[TenantIsolation] Rate limit exceeded for ${tenantId} on ${endpoint}`);
+            }
+            return false;
+        }
+        
+        // Increment count
+        data.count++;
+        this.rateLimits.set(key, data);
+        return true;
+    }
+
+    /**
+     * Get active sessions for a tenant
+     * @param {string} tenantId - Tenant ID
+     * @returns {number} Number of active sessions
+     */
+    getActiveSessions(tenantId) {
+        return this.activeSessions.get(tenantId) || 0;
+    }
+
+    /**
+     * Update tenant configuration
+     * @param {string} tenantId - Tenant ID
+     * @param {object} newConfig - New configuration
+     * @param {object} options - Additional options
+     * @returns {object} Updated configuration
+     */
+    updateTenantConfig(tenantId, newConfig, options = {}) {
+        const currentConfig = this.getTenantConfig(tenantId, options);
+        const updatedConfig = { ...currentConfig, ...newConfig };
+        
+        this.tenantConfigs.set(tenantId, updatedConfig);
+        this.cacheTimestamps.set(`config_${tenantId}`, Date.now());
+        
+        // In production, save to database
+        this.saveTenantConfig(tenantId, updatedConfig);
+        
+        if (this.debugMode) {
+            console.log(`[TenantIsolation] Updated config for ${tenantId}:`, updatedConfig);
+        }
+        
+        return updatedConfig;
+    }
+
+    /**
+     * Save tenant configuration to database
+     * @param {string} tenantId - Tenant ID
+     * @param {object} config - Configuration to save
+     */
+    saveTenantConfig(tenantId, config) {
+        // In production, this would save to Firestore
+        if (this.debugMode) {
+            console.log(`[TenantIsolation] Saving config for ${tenantId}:`, config);
+        }
     }
 }
 
