@@ -1,0 +1,215 @@
+/**
+ * ==========================================
+ * FILE: reset.css
+ * MODULE: Reset/Normalize
+ * VERSION: 2.0.0
+ * ==========================================
+ * 
+ * DESCRIPTION:
+ * Modern CSS reset for 11 Avatar CRM.
+ * Normalizes styles across browsers.
+ * ==========================================
+ */
+
+/* ==========================================
+   BOX SIZING
+   ========================================== */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ==========================================
+   HTML & BODY
+   ========================================== */
+html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    font-family: var(--font-primary, 'Inter', sans-serif);
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--text-primary, #0A0A0A);
+    background: var(--bg-primary, #F8F6F0);
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* ==========================================
+   TYPOGRAPHY
+   ========================================== */
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading, 'Poppins', sans-serif);
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text-primary, #0A0A0A);
+}
+
+p {
+    color: var(--text-muted, #666666);
+    line-height: 1.7;
+}
+
+a {
+    color: var(--text-link, #D4AF37);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: var(--text-link-hover, #E8C95A);
+}
+
+/* ==========================================
+   LISTS
+   ========================================== */
+ul,
+ol {
+    list-style: none;
+}
+
+/* ==========================================
+   IMAGES & MEDIA
+   ========================================== */
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* ==========================================
+   FORMS
+   ========================================== */
+input,
+button,
+textarea,
+select {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+}
+
+button {
+    cursor: pointer;
+    border: none;
+    background: none;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+input[type="search"],
+input[type="url"],
+textarea,
+select {
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+/* ==========================================
+   TABLES
+   ========================================== */
+table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+}
+
+/* ==========================================
+   CODE
+   ========================================== */
+code,
+pre,
+kbd,
+samp {
+    font-family: var(--font-mono, 'SF Mono', 'Fira Code', monospace);
+    font-size: 0.9em;
+}
+
+/* ==========================================
+   HR
+   ========================================== */
+hr {
+    border: none;
+    border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+    margin: 1.5rem 0;
+}
+
+/* ==========================================
+   SELECTION
+   ========================================== */
+::selection {
+    background: var(--brand-gold, #D4AF37);
+    color: var(--btn-primary-text, #0A0A0A);
+}
+
+::-moz-selection {
+    background: var(--brand-gold, #D4AF37);
+    color: var(--btn-primary-text, #0A0A0A);
+}
+
+/* ==========================================
+   FOCUS VISIBLE
+   ========================================== */
+:focus-visible {
+    outline: 2px solid var(--brand-gold, #D4AF37);
+    outline-offset: 2px;
+}
+
+/* ==========================================
+   SCROLLBAR
+   ========================================== */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-gold, rgba(212, 175, 55, 0.3));
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--brand-gold, #D4AF37);
+}
+
+/* ==========================================
+   PRINT
+   ========================================== */
+@media print {
+    *,
+    *::before,
+    *::after {
+        background: transparent !important;
+        color: #000 !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+    }
+    
+    body {
+        min-height: auto;
+    }
+    
+    .no-print {
+        display: none !important;
+    }
+}
