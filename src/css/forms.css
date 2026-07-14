@@ -1,0 +1,440 @@
+/**
+ * ==========================================
+ * FILE: forms.css
+ * MODULE: Form Styles
+ * VERSION: 2.0.0
+ * ==========================================
+ * 
+ * DESCRIPTION:
+ * Form styles for 11 Avatar CRM.
+ * Includes form groups, inputs, selects, textarea,
+ * checkbox, radio, and validation styles.
+ * 
+ * THEME RULES:
+ * - Public Pages: Dark Mode Default
+ * - Internal Pages: Light Mode Default
+ * - Brand Colors: White, Gold, Black
+ * ==========================================
+ */
+
+/* ==========================================
+   FORM GROUPS
+   ========================================== */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 16px;
+}
+.form-group label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-muted, #666666);
+    letter-spacing: 0.3px;
+}
+.form-group label .required {
+    color: #EF4444;
+    margin-left: 2px;
+}
+.form-group .helper {
+    font-size: 0.75rem;
+    color: var(--text-muted, #666666);
+    margin-top: 4px;
+}
+
+/* ==========================================
+   INPUT WRAPPER
+   ========================================== */
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.input-wrapper .input-icon {
+    position: absolute;
+    left: 14px;
+    color: var(--text-muted, #666666);
+    font-size: 0.95rem;
+    pointer-events: none;
+    transition: color var(--transition-fast, 0.15s ease);
+}
+
+/* ==========================================
+   INPUTS
+   ========================================== */
+.input-wrapper input,
+.input-wrapper select,
+.input-wrapper textarea {
+    width: 100%;
+    padding: 12px 14px 12px 44px;
+    background: var(--bg-input, #F0EEE8);
+    border: 1.5px solid var(--border-color, rgba(0, 0, 0, 0.08));
+    border-radius: var(--radius-md, 10px);
+    color: var(--text-primary, #0A0A0A);
+    font-size: 0.95rem;
+    font-family: var(--font-primary, 'Inter', sans-serif);
+    transition: all var(--transition-fast, 0.15s ease);
+    outline: none;
+    line-height: 1.5;
+}
+
+.input-wrapper input::placeholder,
+.input-wrapper textarea::placeholder {
+    color: var(--text-hint, #999999);
+}
+
+.input-wrapper input:focus,
+.input-wrapper select:focus,
+.input-wrapper textarea:focus {
+    border-color: var(--brand-gold, #D4AF37);
+    box-shadow: 0 0 0 4px var(--brand-gold-subtle, rgba(212, 175, 55, 0.15));
+}
+
+.input-wrapper input:focus+.input-icon,
+.input-wrapper input:focus~.input-icon,
+.input-wrapper textarea:focus+.input-icon {
+    color: var(--brand-gold, #D4AF37);
+}
+
+.input-wrapper input:disabled,
+.input-wrapper select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.input-wrapper input:read-only {
+    background: var(--bg-muted, rgba(0, 0, 0, 0.04));
+    cursor: default;
+}
+
+/* Input with no icon */
+.input-wrapper.no-icon input,
+.input-wrapper.no-icon select,
+.input-wrapper.no-icon textarea {
+    padding-left: 14px;
+}
+
+/* ==========================================
+   INPUT SIZES
+   ========================================== */
+.input-sm input,
+.input-sm select,
+.input-sm textarea {
+    padding: 8px 12px 8px 38px;
+    font-size: 0.85rem;
+}
+.input-sm .input-icon {
+    font-size: 0.8rem;
+    left: 12px;
+}
+.input-sm.no-icon input {
+    padding-left: 12px;
+}
+
+.input-lg input,
+.input-lg select,
+.input-lg textarea {
+    padding: 14px 18px 14px 50px;
+    font-size: 1.05rem;
+}
+.input-lg .input-icon {
+    font-size: 1.1rem;
+    left: 16px;
+}
+.input-lg.no-icon input {
+    padding-left: 18px;
+}
+
+/* ==========================================
+   TEXTAREA
+   ========================================== */
+.input-wrapper textarea {
+    min-height: 80px;
+    resize: vertical;
+    padding-top: 12px;
+}
+.input-wrapper textarea.no-icon {
+    padding-left: 14px;
+}
+
+/* ==========================================
+   SELECT
+   ========================================== */
+.input-wrapper select {
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    padding-right: 36px;
+}
+.input-wrapper select::-ms-expand {
+    display: none;
+}
+.input-wrapper .select-arrow {
+    position: absolute;
+    right: 14px;
+    color: var(--text-muted, #666666);
+    pointer-events: none;
+    font-size: 0.7rem;
+}
+.input-wrapper select option {
+    background: var(--bg-card, #FFFFFF);
+    color: var(--text-primary, #0A0A0A);
+}
+
+/* ==========================================
+   CHECKBOX
+   ========================================== */
+.checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+.checkbox-wrapper input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--brand-gold, #D4AF37);
+    cursor: pointer;
+    flex-shrink: 0;
+    border-radius: 4px;
+}
+.checkbox-wrapper .label {
+    font-size: 0.85rem;
+    color: var(--text-primary, #0A0A0A);
+}
+
+/* Custom Checkbox */
+.checkbox-custom {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+.checkbox-custom input {
+    display: none;
+}
+.checkbox-custom .box {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color, rgba(0, 0, 0, 0.08));
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast, 0.15s ease);
+    flex-shrink: 0;
+}
+.checkbox-custom .box i {
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all var(--transition-fast, 0.15s ease);
+    font-size: 0.7rem;
+    color: var(--btn-primary-text, #0A0A0A);
+}
+.checkbox-custom input:checked+.box {
+    background: var(--brand-gold, #D4AF37);
+    border-color: var(--brand-gold, #D4AF37);
+}
+.checkbox-custom input:checked+.box i {
+    opacity: 1;
+    transform: scale(1);
+}
+.checkbox-custom .label {
+    font-size: 0.85rem;
+    color: var(--text-primary, #0A0A0A);
+}
+
+/* ==========================================
+   RADIO
+   ========================================== */
+.radio-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+.radio-wrapper input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--brand-gold, #D4AF37);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.radio-wrapper .label {
+    font-size: 0.85rem;
+    color: var(--text-primary, #0A0A0A);
+}
+
+/* Custom Radio */
+.radio-custom {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+.radio-custom input {
+    display: none;
+}
+.radio-custom .circle {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color, rgba(0, 0, 0, 0.08));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast, 0.15s ease);
+    flex-shrink: 0;
+}
+.radio-custom .circle .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--brand-gold, #D4AF37);
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all var(--transition-fast, 0.15s ease);
+}
+.radio-custom input:checked+.circle {
+    border-color: var(--brand-gold, #D4AF37);
+}
+.radio-custom input:checked+.circle .dot {
+    opacity: 1;
+    transform: scale(1);
+}
+.radio-custom .label {
+    font-size: 0.85rem;
+    color: var(--text-primary, #0A0A0A);
+}
+
+/* ==========================================
+   TOGGLE (Form Toggle)
+   ========================================== */
+.toggle-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.toggle-wrapper .toggle {
+    position: relative;
+    width: 48px;
+    height: 26px;
+    background: var(--bg-input, #F0EEE8);
+    border-radius: 13px;
+    cursor: pointer;
+    transition: all var(--transition-fast, 0.15s ease);
+    flex-shrink: 0;
+}
+.toggle-wrapper .toggle.active {
+    background: var(--brand-gold, #D4AF37);
+}
+.toggle-wrapper .toggle .knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    transition: all var(--transition-fast, 0.15s ease);
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.06));
+}
+.toggle-wrapper .toggle.active .knob {
+    left: 25px;
+}
+.toggle-wrapper .label {
+    font-size: 0.85rem;
+    color: var(--text-primary, #0A0A0A);
+}
+.toggle-wrapper .label .desc {
+    font-size: 0.75rem;
+    color: var(--text-muted, #666666);
+    display: block;
+}
+
+/* ==========================================
+   FORM ROW
+   ========================================== */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+/* ==========================================
+   FORM ACTIONS
+   ========================================== */
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+}
+
+/* ==========================================
+   VALIDATION STATES
+   ========================================== */
+.input-wrapper .input-success {
+    border-color: #10B981;
+}
+.input-wrapper .input-success:focus {
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+}
+.input-wrapper .input-success+.input-icon {
+    color: #10B981;
+}
+
+.input-wrapper .input-error {
+    border-color: #EF4444;
+}
+.input-wrapper .input-error:focus {
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15);
+}
+.input-wrapper .input-error+.input-icon {
+    color: #EF4444;
+}
+
+.input-wrapper .input-warning {
+    border-color: #F59E0B;
+}
+.input-wrapper .input-warning:focus {
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
+}
+.input-wrapper .input-warning+.input-icon {
+    color: #F59E0B;
+}
+
+/* Validation Messages */
+.validation-message {
+    font-size: 0.75rem;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.validation-message.success {
+    color: #10B981;
+}
+.validation-message.error {
+    color: #EF4444;
+}
+.validation-message.warning {
+    color: #F59E0B;
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    .form-actions {
+        flex-direction: column;
+    }
+    .form-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
