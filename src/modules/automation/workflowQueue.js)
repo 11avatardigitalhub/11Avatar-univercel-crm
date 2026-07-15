@@ -1,0 +1,1103 @@
+/**
+ * ==========================================
+ * FILE: workflowQueue.js
+ * MODULE: Automation Module
+ * CODE: AUTO-7
+ * PRIORITY: P0
+ * PHASE: 2
+ * STATUS: COMPLETED
+ * VERSION: 1.0.0
+ * ==========================================
+ * 
+ * DESCRIPTION:
+ * Workflow queue management system for automation workflows.
+ * Handles queuing, prioritization, scheduling, and processing
+ * of workflow executions with retry and dead letter queue support.
+ * 
+ * DEPENDENCIES:
+ * - eventBus.js (for events)
+ * - auditLogger.js (for logging)
+ * - logger.js (for logging)
+ * - tenantIsolation.js (for tenant context)
+ * 
+ * FUNCTIONS:
+ * - initialize(): Initialize workflow queue
+ * - enqueue(workflowId, context, options): Add to queue
+ * - enqueueBatch(items): Add multiple items to queue
+ * - dequeue(): Remove and return next item
+ * - peek(): View next item without removing
+ * - getQueueLength(): Get queue length
+ * - getQueueItems(filters): Get queue items with filters
+ * - cancelItem(itemId): Cancel a queued item
+ * - pauseQueue(): Pause queue processing
+ * - resumeQueue(): Resume queue processing
+ * - processQueue(): Process queue items
+ * - retryItem(itemId): Retry a failed item
+ * - moveToDeadLetter(itemId, reason): Move to dead letter queue
+ * - getDeadLetterItems(): Get dead letter items
+ * - purgeDeadLetter(): Purge dead letter queue
+ * - getQueueStats(): Get queue statistics
+ * - prioritizeItem(itemId, priority): Change item priority
+ * - scheduleItem(itemId, scheduledTime): Schedule item
+ * - getProcessingMetrics(): Get processing metrics
+ * 
+ * USAGE EXAMPLE:
+ * import { workflowQueue } from './modules/automation/workflowQueue.js';
+ * 
+ * // Initialize workflow queue
+ * await workflowQueue.initialize();
+ * 
+ * // Enqueue a workflow
+ * await workflowQueue.enqueue('wf_123', {
+ *   leadId: 'lead_456',
+ *   userId: 'user_789'
+ * }, {
+ *   priority: 1,
+ *   scheduledTime: new Date(Date.now() + 60000).toISOString()
+ * });
+ * 
+ * // Process queue
+ * await workflowQueue.processQueue();
+ * 
+ * // Get queue stats
+ * const stats = await workflowQueue.getQueueStats();
+ * ==========================================
+ */
+
+import { eventBus } from '../../core/events/eventBus.js';
+import { logger } from '../../core/monitoring/logger.js';
+import { auditLogger } from '../../core/audit/auditLogger.js';
+import { tenantIsolation } from '../../core/multitenancy/tenantIsolation.js';
+import { workflowEngine } from './workflowEngine.js';
+
+// In-memory storage (for MVP)
+// In production, this would be Redis or Firestore
+let queueItems = [];
+let deadLetterItems = [];
+let processingItems = new Map();
+let itemIdCounter = 1000;
+let isProcessing = false;
+let isPaused = false;
+
+// Queue item statuses
+const QUEUE_STATUS = {
+    PENDING: 'pending',
+    PROCESSING: 'processing',
+    COMPLETED: 'completed',
+    FAILED: 'failed',
+    CANCELLED: 'cancelled',
+    SCHEDULED: 'scheduled',
+    RETRYING: 'retrying',
+    DEAD_LETTER: 'dead_letter'
+};
+
+// Queue priorities
+const QUEUE_PRIORITY = {
+    CRITICAL: 0,
+    HIGH: 1,
+    MEDIUM: 2,
+    LOW: 3,
+    BACKGROUND: 4
+};
+
+class WorkflowQueue {
+    constructor() {
+        // Service state
+        this.initialized = false;
+        this.processingInterval = null;
+        this.retryInterval = null;
+        this.scheduleInterval = null;
+        
+        // Configuration
+        this.config = {
+            maxConcurrentProcessing: 10,
+            retryAttempts: 3,
+            retryDelay: 5000,
+            maxRetryDelay: 60000,
+            processingTimeout: 300000, // 5 minutes
+            maxQueueSize: 10000,
+            maxDeadLetterSize: 1000,
+            enableScheduling: true,
+            enablePriority: true,
+            enableRetry: true,
+            enableDeadLetter: true,
+            enableMetrics: true,
+            processingInterval: 1000,
+            scheduleCheckInterval: 30000
+        };
+        
+        // Cache
+        this.cache = {
+            items: new Map(),
+            stats: new Map()
+        };
+        this.cacheTTL = 5 * 60 * 1000;
+        this.cacheTimestamps = new Map();
+        
+        // Metrics
+        this.metrics = {
+            totalEnqueued: 0,
+            totalProcessed: 0,
+            totalFailed: 0,
+            totalCancelled: 0,
+            totalRetried: 0,
+            totalDeadLetter: 0,
+            averageProcessingTime: 0,
+            queueSize: 0,
+            processingSize: 0,
+            deadLetterSize: 0,
+            byPriority: {},
+            byStatus: {}
+        };
+        
+        // Debug mode
+        this.debugMode = false;
+        
+        // Initialize sample data
+        this.initSampleData();
+    }
+
+    /**
+     * Initialize sample data for testing
+     */
+    initSampleData() {
+        const now = new Date();
+        const sampleItems = [
+            {
+                id: 'item_1001',
+                workflowId: 'wf_1',
+                tenantId: 'tenant_1',
+                status: 'pending',
+                priority: 1,
+                context: { leadId: 'lead_123', userId: 'user_456' },
+                createdAt: new Date(now.getTime() - 60000).toISOString(),
+                updatedAt: new Date(now.getTime() - 60000).toISOString(),
+                scheduledTime: null,
+                attempts: 0,
+                maxAttempts: 3,
+                lastError: null,
+                metadata: { source: 'event' }
+            },
+            {
+                id: 'item_1002',
+                workflowId: 'wf_2',
+                tenantId: 'tenant_1',
+                status: 'pending',
+                priority: 2,
+                context: { leadId: 'lead_456', userId: 'user_789' },
+                createdAt: new Date(now.getTime() - 30000).toISOString(),
+                updatedAt: new Date(now.getTime() - 30000).toISOString(),
+                scheduledTime: null,
+                attempts: 0,
+                maxAttempts: 3,
+                lastError: null,
+                metadata: { source: 'schedule' }
+            },
+            {
+                id: 'item_1003',
+                workflowId: 'wf_3',
+                tenantId: 'tenant_1',
+                status: 'scheduled',
+                priority: 0,
+                context: { leadId: 'lead_789', userId: 'user_123' },
+                createdAt: new Date(now.getTime() - 120000).toISOString(),
+                updatedAt: new Date(now.getTime() - 120000).toISOString(),
+                scheduledTime: new Date(now.getTime() + 60000).toISOString(),
+                attempts: 0,
+                maxAttempts: 3,
+                lastError: null,
+                metadata: { source: 'schedule' }
+            }
+        ];
+
+        for (const item of sampleItems) {
+            queueItems.push(item);
+            this.updateMetrics(item);
+        }
+    }
+
+    /**
+     * Initialize workflow queue
+     * @param {object} options - Initialization options
+     * @returns {boolean} Success status
+     */
+    async initialize(options = {}) {
+        if (this.initialized) {
+            return true;
+        }
+
+        try {
+            // Update config if provided
+            if (options.config) {
+                this.config = { ...this.config, ...options.config };
+            }
+
+            // Start processing intervals
+            this.startProcessingInterval();
+            this.startRetryInterval();
+            this.startScheduleInterval();
+
+            // Load queue state
+            await this.loadQueueState();
+
+            logger.info('Workflow queue initialized', {
+                queueSize: queueItems.length,
+                deadLetterSize: deadLetterItems.length,
+                config: this.config
+            });
+
+            this.initialized = true;
+            return true;
+        } catch (error) {
+            logger.error('Workflow queue initialization failed:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Start processing interval
+     */
+    startProcessingInterval() {
+        this.processingInterval = setInterval(() => {
+            if (!this.initialized) return;
+            if (isPaused) return;
+            if (isProcessing) return;
+            this.processQueue();
+        }, this.config.processingInterval);
+    }
+
+    /**
+     * Start retry interval
+     */
+    startRetryInterval() {
+        this.retryInterval = setInterval(() => {
+            if (!this.initialized) return;
+            this.processRetries();
+        }, this.config.retryDelay);
+    }
+
+    /**
+     * Start schedule interval
+     */
+    startScheduleInterval() {
+        this.scheduleInterval = setInterval(() => {
+            if (!this.initialized) return;
+            this.processScheduledItems();
+        }, this.config.scheduleCheckInterval);
+    }
+
+    /**
+     * Load queue state from storage
+     */
+    async loadQueueState() {
+        // In production, this would load from Firestore or Redis
+        // For MVP, already in memory
+        if (this.debugMode) {
+            logger.debug('[WorkflowQueue] Queue state loaded');
+        }
+    }
+
+    /**
+     * Enqueue a workflow
+     * @param {string} workflowId - Workflow ID
+     * @param {object} context - Execution context
+     * @param {object} options - Additional options
+     * @returns {object} Queue item
+     */
+    async enqueue(workflowId, context = {}, options = {}) {
+        if (!this.initialized) {
+            throw new Error('Workflow queue not initialized');
+        }
+
+        // Get tenant context
+        const tenantId = tenantIsolation.getCurrentTenant();
+        if (!tenantId) {
+            throw new Error('No tenant context available');
+        }
+
+        // Check queue size limit
+        if (queueItems.length >= this.config.maxQueueSize) {
+            throw new Error(`Queue size limit (${this.config.maxQueueSize}) reached`);
+        }
+
+        // Create queue item
+        const item = {
+            id: this.generateId(),
+            workflowId: workflowId,
+            tenantId: tenantId,
+            status: options.scheduledTime ? QUEUE_STATUS.SCHEDULED : QUEUE_STATUS.PENDING,
+            priority: options.priority || QUEUE_PRIORITY.MEDIUM,
+            context: context,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            scheduledTime: options.scheduledTime || null,
+            attempts: 0,
+            maxAttempts: options.maxAttempts || this.config.retryAttempts,
+            lastError: null,
+            metadata: options.metadata || {},
+            retryDelay: options.retryDelay || this.config.retryDelay
+        };
+
+        // Store item
+        queueItems.push(item);
+        this.cache.items.set(item.id, item);
+        this.cacheTimestamps.set(item.id, Date.now());
+
+        // Update metrics
+        this.metrics.totalEnqueued++;
+        this.updateMetrics(item);
+
+        // Log to audit
+        await auditLogger.log(
+            options.userId || 'system',
+            'workflow.queued',
+            'automation',
+            { itemId: item.id, workflowId: workflowId, priority: item.priority }
+        );
+
+        // Emit event
+        eventBus.publish('workflow.queued', {
+            itemId: item.id,
+            workflowId: workflowId,
+            userId: options.userId || 'system'
+        });
+
+        if (this.debugMode) {
+            logger.debug(`[WorkflowQueue] Item queued: ${item.id}`);
+        }
+
+        return { ...item };
+    }
+
+    /**
+     * Enqueue multiple items
+     * @param {Array} items - Array of {workflowId, context, options}
+     * @param {object} options - Additional options
+     * @returns {Array} Queue items
+     */
+    async enqueueBatch(items, options = {}) {
+        const results = [];
+
+        for (const item of items) {
+            try {
+                const result = await this.enqueue(
+                    item.workflowId,
+                    item.context,
+                    { ...item.options, ...options }
+                );
+                results.push(result);
+            } catch (error) {
+                results.push({
+                    error: error.message,
+                    workflowId: item.workflowId,
+                    context: item.context
+                });
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * Dequeue the next item
+     * @param {object} options - Additional options
+     * @returns {object|null} Queue item or null
+     */
+    async dequeue(options = {}) {
+        // Get the next pending item (highest priority, oldest)
+        const pendingItems = queueItems.filter(item => 
+            item.status === QUEUE_STATUS.PENDING &&
+            (!item.scheduledTime || new Date(item.scheduledTime) <= new Date())
+        );
+
+        if (pendingItems.length === 0) {
+            return null;
+        }
+
+        // Sort by priority (lower number = higher priority)
+        if (this.config.enablePriority) {
+            pendingItems.sort((a, b) => a.priority - b.priority);
+        }
+
+        const item = pendingItems[0];
+        
+        // Update status
+        item.status = QUEUE_STATUS.PROCESSING;
+        item.updatedAt = new Date().toISOString();
+        processingItems.set(item.id, item);
+
+        // Update metrics
+        this.updateMetrics(item);
+
+        return { ...item };
+    }
+
+    /**
+     * Peek at the next item without removing it
+     * @param {object} options - Additional options
+     * @returns {object|null} Queue item or null
+     */
+    async peek(options = {}) {
+        const pendingItems = queueItems.filter(item => 
+            item.status === QUEUE_STATUS.PENDING &&
+            (!item.scheduledTime || new Date(item.scheduledTime) <= new Date())
+        );
+
+        if (pendingItems.length === 0) {
+            return null;
+        }
+
+        if (this.config.enablePriority) {
+            pendingItems.sort((a, b) => a.priority - b.priority);
+        }
+
+        return { ...pendingItems[0] };
+    }
+
+    /**
+     * Process the queue
+     * @param {object} options - Additional options
+     * @returns {number} Number of items processed
+     */
+    async processQueue(options = {}) {
+        if (isProcessing) return 0;
+        if (isPaused) return 0;
+        if (processingItems.size >= this.config.maxConcurrentProcessing) return 0;
+
+        isProcessing = true;
+        let processed = 0;
+
+        try {
+            // Get items to process
+            const itemsToProcess = queueItems.filter(item => 
+                item.status === QUEUE_STATUS.PENDING &&
+                (!item.scheduledTime || new Date(item.scheduledTime) <= new Date()) &&
+                processingItems.size < this.config.maxConcurrentProcessing
+            );
+
+            // Sort by priority
+            if (this.config.enablePriority) {
+                itemsToProcess.sort((a, b) => a.priority - b.priority);
+            }
+
+            // Process up to max concurrent
+            const limit = this.config.maxConcurrentProcessing - processingItems.size;
+            const batch = itemsToProcess.slice(0, limit);
+
+            for (const item of batch) {
+                try {
+                    // Update status
+                    item.status = QUEUE_STATUS.PROCESSING;
+                    item.updatedAt = new Date().toISOString();
+                    processingItems.set(item.id, item);
+
+                    // Execute workflow
+                    const result = await workflowEngine.executeAsync(
+                        item.workflowId,
+                        item.context,
+                        { 
+                            userId: item.metadata.userId || 'system',
+                            priority: item.priority
+                        }
+                    );
+
+                    // Update item
+                    item.status = QUEUE_STATUS.COMPLETED;
+                    item.updatedAt = new Date().toISOString();
+                    item.result = result;
+
+                    this.metrics.totalProcessed++;
+                    processed++;
+
+                    // Emit event
+                    eventBus.publish('workflow.queue.processed', {
+                        itemId: item.id,
+                        workflowId: item.workflowId,
+                        result: result
+                    });
+
+                    if (this.debugMode) {
+                        logger.debug(`[WorkflowQueue] Item processed: ${item.id}`);
+                    }
+
+                } catch (error) {
+                    // Handle failure
+                    item.status = QUEUE_STATUS.FAILED;
+                    item.updatedAt = new Date().toISOString();
+                    item.lastError = error.message;
+                    item.attempts++;
+
+                    this.metrics.totalFailed++;
+
+                    // Retry if attempts remaining
+                    if (this.config.enableRetry && item.attempts < item.maxAttempts) {
+                        item.status = QUEUE_STATUS.RETRYING;
+                        item.updatedAt = new Date().toISOString();
+                        
+                        // Schedule retry with exponential backoff
+                        const delay = Math.min(
+                            item.retryDelay * Math.pow(2, item.attempts - 1),
+                            this.config.maxRetryDelay
+                        );
+                        
+                        setTimeout(() => {
+                            item.status = QUEUE_STATUS.PENDING;
+                            item.updatedAt = new Date().toISOString();
+                            this.metrics.totalRetried++;
+                            
+                            if (this.debugMode) {
+                                logger.debug(`[WorkflowQueue] Item retrying: ${item.id} (attempt ${item.attempts})`);
+                            }
+                        }, delay);
+
+                    } else if (this.config.enableDeadLetter) {
+                        // Move to dead letter queue
+                        await this.moveToDeadLetter(item.id, error.message);
+                    }
+
+                    // Emit event
+                    eventBus.publish('workflow.queue.failed', {
+                        itemId: item.id,
+                        workflowId: item.workflowId,
+                        error: error.message
+                    });
+                } finally {
+                    processingItems.delete(item.id);
+                    this.updateMetrics(item);
+                }
+            }
+        } finally {
+            isProcessing = false;
+        }
+
+        return processed;
+    }
+
+    /**
+     * Process retries
+     */
+    async processRetries() {
+        const retryItems = queueItems.filter(item => 
+            item.status === QUEUE_STATUS.RETRYING &&
+            item.attempts < item.maxAttempts
+        );
+
+        for (const item of retryItems) {
+            item.status = QUEUE_STATUS.PENDING;
+            item.updatedAt = new Date().toISOString();
+            this.metrics.totalRetried++;
+            this.updateMetrics(item);
+
+            if (this.debugMode) {
+                logger.debug(`[WorkflowQueue] Item retried: ${item.id} (attempt ${item.attempts + 1})`);
+            }
+        }
+    }
+
+    /**
+     * Process scheduled items
+     */
+    async processScheduledItems() {
+        const now = new Date();
+        const scheduledItems = queueItems.filter(item => 
+            item.status === QUEUE_STATUS.SCHEDULED &&
+            item.scheduledTime &&
+            new Date(item.scheduledTime) <= now
+        );
+
+        for (const item of scheduledItems) {
+            item.status = QUEUE_STATUS.PENDING;
+            item.updatedAt = new Date().toISOString();
+            this.updateMetrics(item);
+
+            if (this.debugMode) {
+                logger.debug(`[WorkflowQueue] Scheduled item activated: ${item.id}`);
+            }
+        }
+    }
+
+    /**
+     * Get queue length
+     * @param {object} options - Additional options
+     * @returns {number} Queue length
+     */
+    async getQueueLength(options = {}) {
+        const status = options.status || QUEUE_STATUS.PENDING;
+        return queueItems.filter(item => item.status === status).length;
+    }
+
+    /**
+     * Get queue items with filters
+     * @param {object} filters - Filter criteria
+     * @param {object} options - Additional options
+     * @returns {Array} Queue items
+     */
+    async getQueueItems(filters = {}, options = {}) {
+        const tenantId = tenantIsolation.getCurrentTenant();
+        if (!tenantId) {
+            throw new Error('No tenant context available');
+        }
+
+        let results = queueItems.filter(item => item.tenantId === tenantId);
+
+        // Apply filters
+        if (filters.status) {
+            const statuses = Array.isArray(filters.status) ? filters.status : [filters.status];
+            results = results.filter(item => statuses.includes(item.status));
+        }
+
+        if (filters.workflowId) {
+            results = results.filter(item => item.workflowId === filters.workflowId);
+        }
+
+        if (filters.priority) {
+            results = results.filter(item => item.priority === filters.priority);
+        }
+
+        if (filters.startDate) {
+            results = results.filter(item => new Date(item.createdAt) >= new Date(filters.startDate));
+        }
+
+        if (filters.endDate) {
+            results = results.filter(item => new Date(item.createdAt) <= new Date(filters.endDate));
+        }
+
+        if (filters.search) {
+            const searchTerm = filters.search.toLowerCase();
+            results = results.filter(item =>
+                item.workflowId.toLowerCase().includes(searchTerm) ||
+                JSON.stringify(item.context).toLowerCase().includes(searchTerm)
+            );
+        }
+
+        // Apply sorting
+        const sortBy = options.sortBy || 'createdAt';
+        const sortOrder = options.sortOrder || 'desc';
+        
+        results.sort((a, b) => {
+            let valA = a[sortBy];
+            let valB = b[sortBy];
+            
+            if (sortBy === 'createdAt' || sortBy === 'updatedAt' || sortBy === 'scheduledTime') {
+                valA = valA ? new Date(valA).getTime() : 0;
+                valB = valB ? new Date(valB).getTime() : 0;
+            }
+            
+            if (sortOrder === 'asc') {
+                return valA < valB ? -1 : 1;
+            } else {
+                return valA > valB ? -1 : 1;
+            }
+        });
+
+        // Apply pagination
+        const limit = options.limit || 50;
+        const offset = options.offset || 0;
+        const paginated = results.slice(offset, offset + limit);
+
+        return paginated.map(item => ({ ...item }));
+    }
+
+    /**
+     * Cancel a queued item
+     * @param {string} itemId - Item ID
+     * @param {object} options - Additional options
+     * @returns {boolean} Success status
+     */
+    async cancelItem(itemId, options = {}) {
+        const index = queueItems.findIndex(item => item.id === itemId);
+        if (index === -1) {
+            throw new Error(`Item ${itemId} not found`);
+        }
+
+        const item = queueItems[index];
+        
+        if (item.status === QUEUE_STATUS.PROCESSING) {
+            // Try to cancel processing
+            if (processingItems.has(itemId)) {
+                processingItems.delete(itemId);
+            }
+            // Emit cancel event
+            eventBus.publish('workflow.queue.cancelled', {
+                itemId: itemId,
+                workflowId: item.workflowId
+            });
+        }
+
+        item.status = QUEUE_STATUS.CANCELLED;
+        item.updatedAt = new Date().toISOString();
+        item.cancelledReason = options.reason || 'Cancelled by user';
+        
+        this.metrics.totalCancelled++;
+        this.updateMetrics(item);
+
+        // Log to audit
+        await auditLogger.log(
+            options.userId || 'system',
+            'workflow.queue.cancelled',
+            'automation',
+            { itemId: itemId, workflowId: item.workflowId }
+        );
+
+        if (this.debugMode) {
+            logger.debug(`[WorkflowQueue] Item cancelled: ${itemId}`);
+        }
+
+        return true;
+    }
+
+    /**
+     * Pause queue processing
+     * @param {object} options - Additional options
+     * @returns {boolean} Success status
+     */
+    async pauseQueue(options = {}) {
+        isPaused = true;
+
+        if (this.debugMode) {
+            logger.debug('[WorkflowQueue] Queue paused');
+        }
+
+        return true;
+    }
+
+    /**
+     * Resume queue processing
+     * @param {object} options - Additional options
+     * @returns {boolean} Success status
+     */
+    async resumeQueue(options = {}) {
+        isPaused = false;
+
+        if (this.debugMode) {
+            logger.debug('[WorkflowQueue] Queue resumed');
+        }
+
+        return true;
+    }
+
+    /**
+     * Retry a failed item
+     * @param {string} itemId - Item ID
+     * @param {object} options - Additional options
+     * @returns {boolean} Success status
+     */
+    async retryItem(itemId, options = {}) {
+        const index = queueItems.findIndex(item => item.id === itemId);
+        if (index === -1) {
+            throw new Error(`Item ${itemId} not found`);
+        }
+
+        const item = queueItems[index];
+        
+        if (item.status !== QUEUE_STATUS.FAILED && item.status !== QUEUE_STATUS.DEAD_LETTER) {
+            throw new Error(`Item ${itemId} cannot be retried (status: ${item.status})`);
+        }
+
+        // Reset item for retry
+        item.status = QUEUE_STATUS.PENDING;
+        item.attempts = 0;
+        item.lastError = null;
+        item.updatedAt = new Date().toISOString();
+
+        // Remove from dead letter if present
+        if (item.status === QUEUE_STATUS.DEAD_LETTER) {
+            const dlIndex = deadLetterItems.findIndex(dl => dl.id === itemId);
+            if (dlIndex !== -1) {
+                deadLetterItems.splice(dlIndex, 1);
+                this.metrics.deadLetterSize = deadLetterItems.length;
+            }
+        }
+
+        this.updateMetrics(item);
+
+        // Log to audit
+        await auditLogger.log(
+            options.userId || 'system',
+            'workflow.queue.retried',
+            'automation',
+            { itemId: itemId, workflowId: item.workflowId }
+        );
+
+        if (this.debugMode) {
+            logger.debug(`[WorkflowQueue] Item retried: ${itemId}`);
+        }
+
+        return true;
+    }
+
+    /**
+     * Move an item to dead letter queue
+     * @param {string} itemId - Item ID
+     * @param {string} reason - Reason for dead letter
+     * @param {object} options - Additional options
+     * @returns {boolean} Success status
+     */
+    async moveToDeadLetter(itemId, reason, options = {}) {
+        const index = queueItems.findIndex(item => item.id === itemId);
+        if (index === -1) {
+            throw new Error(`Item ${itemId} not found`);
+        }
+
+        const item = queueItems[index];
+
+        // Check dead letter size limit
+        if (deadLetterItems.length >= this.config.maxDeadLetterSize) {
+            throw new Error(`Dead letter queue size limit (${this.config.maxDeadLetterSize}) reached`);
+        }
+
+        // Move to dead letter
+        const deadItem = {
+            ...item,
+            status: QUEUE_STATUS.DEAD_LETTER,
+            deadLetterReason: reason,
+            deadLetterAt: new Date().toISOString()
+        };
+
+        deadLetterItems.push(deadItem);
+        this.metrics.totalDeadLetter++;
+        this.metrics.deadLetterSize = deadLetterItems.length;
+
+        // Remove from main queue
+        queueItems.splice(index, 1);
+        this.cache.items.delete(itemId);
+        this.cacheTimestamps.delete(itemId);
+        processingItems.delete(itemId);
+
+        this.updateMetrics(item);
+
+        // Log to audit
+        await auditLogger.log(
+            options.userId || 'system',
+            'workflow.queue.dead_letter',
+            'automation',
+            { itemId: itemId, workflowId: item.workflowId, reason: reason }
+        );
+
+        if (this.debugMode) {
+            logger.debug(`[WorkflowQueue] Item moved to dead letter: ${itemId}`);
+        }
+
+        return true;
+    }
+
+    /**
+     * Get dead letter items
+     * @param {object} options - Additional options
+     * @returns {Array} Dead letter items
+     */
+    async getDeadLetterItems(options = {}) {
+        return deadLetterItems.map(item => ({ ...item }));
+    }
+
+    /**
+     * Purge dead letter queue
+     * @param {object} options - Additional options
+     * @returns {number} Number of items purged
+     */
+    async purgeDeadLetter(options = {}) {
+        const count = deadLetterItems.length;
+        deadLetterItems = [];
+        this.metrics.deadLetterSize = 0;
+
+        if (this.debugMode) {
+            logger.debug(`[WorkflowQueue] Dead letter queue purged (${count} items)`);
+        }
+
+        return count;
+    }
+
+    /**
+     * Get queue statistics
+     * @param {object} options - Additional options
+     * @returns {object} Queue statistics
+     */
+    async getQueueStats(options = {}) {
+        // Update metrics
+        this.metrics.queueSize = queueItems.length;
+        this.metrics.processingSize = processingItems.size;
+        this.metrics.deadLetterSize = deadLetterItems.length;
+
+        return {
+            ...this.metrics,
+            byPriority: this.metrics.byPriority,
+            byStatus: this.metrics.byStatus,
+            isPaused: isPaused,
+            isProcessing: isProcessing,
+            maxConcurrent: this.config.maxConcurrentProcessing
+        };
+    }
+
+    /**
+     * Change item priority
+     * @param {string} itemId - Item ID
+     * @param {number} priority - New priority
+     * @param {object} options - Additional options
+     * @returns {boolean} Success status
+     */
+    async prioritizeItem(itemId, priority, options = {}) {
+        const index = queueItems.findIndex(item => item.id === itemId);
+        if (index === -1) {
+            throw new Error(`Item ${itemId} not found`);
+        }
+
+        const item = queueItems[index];
+        
+        if (item.status === QUEUE_STATUS.COMPLETED || 
+            item.status === QUEUE_STATUS.CANCELLED) {
+            throw new Error(`Item ${itemId} cannot be reprioritized (status: ${item.status})`);
+        }
+
+        item.priority = priority;
+        item.updatedAt = new Date().toISOString();
+        this.updateMetrics(item);
+
+        if (this.debugMode) {
+            logger.debug(`[WorkflowQueue] Item priority changed: ${itemId} -> ${priority}`);
+        }
+
+        return true;
+    }
+
+    /**
+     * Schedule an item
+     * @param {string} itemId - Item ID
+     * @param {string} scheduledTime - ISO date string
+     * @param {object} options - Additional options
+     * @returns {boolean} Success status
+     */
+    async scheduleItem(itemId, scheduledTime, options = {}) {
+        const index = queueItems.findIndex(item => item.id === itemId);
+        if (index === -1) {
+            throw new Error(`Item ${itemId} not found`);
+        }
+
+        const item = queueItems[index];
+        
+        if (item.status === QUEUE_STATUS.COMPLETED || 
+            item.status === QUEUE_STATUS.CANCELLED) {
+            throw new Error(`Item ${itemId} cannot be scheduled (status: ${item.status})`);
+        }
+
+        item.status = QUEUE_STATUS.SCHEDULED;
+        item.scheduledTime = scheduledTime;
+        item.updatedAt = new Date().toISOString();
+        this.updateMetrics(item);
+
+        if (this.debugMode) {
+            logger.debug(`[WorkflowQueue] Item scheduled: ${itemId} -> ${scheduledTime}`);
+        }
+
+        return true;
+    }
+
+    /**
+     * Get processing metrics
+     * @param {object} options - Additional options
+     * @returns {object} Processing metrics
+     */
+    async getProcessingMetrics(options = {}) {
+        const processing = Array.from(processingItems.values());
+        
+        return {
+            activeCount: processing.length,
+            maxConcurrent: this.config.maxConcurrentProcessing,
+            items: processing.map(item => ({
+                id: item.id,
+                workflowId: item.workflowId,
+                startedAt: item.updatedAt,
+                priority: item.priority
+            })),
+            averageProcessingTime: this.metrics.averageProcessingTime
+        };
+    }
+
+    /**
+     * Update metrics
+     * @param {object} item - Queue item
+     */
+    updateMetrics(item) {
+        // By priority
+        this.metrics.byPriority[item.priority] = (this.metrics.byPriority[item.priority] || 0) + 1;
+        
+        // By status
+        this.metrics.byStatus[item.status] = (this.metrics.byStatus[item.status] || 0) + 1;
+
+        // Queue size
+        this.metrics.queueSize = queueItems.length;
+        this.metrics.processingSize = processingItems.size;
+        this.metrics.deadLetterSize = deadLetterItems.length;
+    }
+
+    /**
+     * Generate unique ID
+     * @returns {string} Unique ID
+     */
+    generateId() {
+        itemIdCounter++;
+        return 'item_' + itemIdCounter;
+    }
+
+    /**
+     * Enable debug mode
+     */
+    enableDebug() {
+        this.debugMode = true;
+        logger.debug('[WorkflowQueue] Debug mode enabled');
+    }
+
+    /**
+     * Disable debug mode
+     */
+    disableDebug() {
+        this.debugMode = false;
+    }
+
+    /**
+     * Update configuration
+     * @param {object} newConfig - New configuration
+     */
+    updateConfig(newConfig) {
+        this.config = { ...this.config, ...newConfig };
+    }
+
+    /**
+     * Get configuration
+     * @returns {object} Current configuration
+     */
+    getConfig() {
+        return { ...this.config };
+    }
+
+    /**
+     * Cleanup resources
+     */
+    cleanup() {
+        // Clear intervals
+        if (this.processingInterval) {
+            clearInterval(this.processingInterval);
+            this.processingInterval = null;
+        }
+        if (this.retryInterval) {
+            clearInterval(this.retryInterval);
+            this.retryInterval = null;
+        }
+        if (this.scheduleInterval) {
+            clearInterval(this.scheduleInterval);
+            this.scheduleInterval = null;
+        }
+
+        this.initialized = false;
+        processingItems.clear();
+        this.cache.items.clear();
+        this.cacheTimestamps.clear();
+
+        logger.info('Workflow queue cleaned up');
+    }
+}
+
+// Create and export singleton instance
+export const workflowQueue = new WorkflowQueue();
+
+// Export class for testing
+export default WorkflowQueue;
